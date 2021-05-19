@@ -1,3 +1,60 @@
+from SPUB_importer_read_data import read_MARC21, get_list_of_people, get_list_of_records
+from SPUB_importer_query_national_library import query_national_library
+
+
+
+
+
+#read data
+
+marc21_records = read_MARC21('bn_harvested_2021_05_12.mrk')
+
+people_list = get_list_of_people(marc21_records, ('=100'), '(\$e|\$t).*', 200)
+
+bibliographical_records = get_list_of_records(marc21_records, people_list, ('=100'), '(\$e|\$t).*')
+
+people_list = get_list_of_people(bibliographical_records, ('=100', '=600', '=700'), '(\$x|\$4|\$e|\.\$t).*')
+
+#query national library
+
+people_list_of_dicts = query_national_library(people_list)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 # przygotować testową listę rekordów bibliograficznych
 # 300 ksiażek z bn (jakie?)
 # wydobyć z nich osoby i związać z kartoteką wzorcową BN
@@ -21,156 +78,22 @@ import requests
 from urllib.error import HTTPError
 from http.client import RemoteDisconnected
 
-#def
-
-def marc_parser_dict_for_field(string, subfield_code):
-    subfield_list = re.findall(f'{subfield_code}.', string)
-    dictionary_field = {}
-    for subfield in subfield_list:
-        subfield_escape = re.escape(subfield)
-        string = re.sub(f'({subfield_escape})', r'❦\1', string)
-    for subfield in subfield_list:
-        subfield_escape = re.escape(subfield)
-        regex = f'(^)(.*?\❦{subfield_escape}|)(.*?)(\,{{0,1}})((\❦{subfield_code})(.*)|$)'
-        value = re.sub(regex, r'\3', string).strip()
-        dictionary_field[subfield] = value
-    return dictionary_field
-
-# 01 - wydobycie listy osób
-start_time = time.time()
-file_path = 'bn_harvested_2021_05_12.mrc'
-path_mrk = file_path.replace('.mrc', '.mrk')
-mrc_to_mrk(file_path, path_mrk)
-path_mrk = 'bn_harvested_2021_05_12.mrk'
-
-encoding = 'utf-8'
-new_list = []
-
-marc_list = io.open(path_mrk, 'rt', encoding = encoding).read().splitlines()
-
-mrk_list = []
-for row in marc_list:
-    if row.startswith('=LDR'):
-        mrk_list.append([row])
-    else:
-        if row:
-            mrk_list[-1].append(row)
- 
-lista_osob = []           
-for sublist in tqdm(mrk_list, total=len(mrk_list)):
-    for el in sublist:
-        if el.startswith('=100'):
-        # if el.startswith(('=100', '=600', '=700')):
-            # el = el[8:].replace('$2DBN', '').strip()
-            el = re.sub('(\$e|\$t).*', '', el[8:]).replace('$2DBN', '').strip()
-            lista_osob.append(el)
-
-slownik_osob = Counter(lista_osob).most_common(200)
-slownik_osob = [e[0] for e in slownik_osob]
-            
-rekordy = []
-for sublist in tqdm(mrk_list, total=len(mrk_list)):
-    for el in sublist:
-        if el.startswith('=100'):
-            el = re.sub('(\$e|\$t).*', '', el[8:]).replace('$2DBN', '').strip()
-            for osoba in slownik_osob:
-                if osoba in el:
-                    rekordy.append(sublist)
-                    slownik_osob.remove(osoba)
-                    break
-
-osoby_z_rekordow = []
-for sublist in tqdm(rekordy, total=len(rekordy)):
-    for el in sublist:
-        if el.startswith(('=100', '=600', '=700')):
-            el = re.sub('(\$x|\$4|\$e|\.\$t).*', '', el[8:]).replace('$2DBN', '').strip()
-            osoby_z_rekordow.append(el)
-
-osoby_z_rekordow = list(set(osoby_z_rekordow))
-
-# 02 - rekordy wzorcowe osób z BN
-#w wynikach nie może być 'title'!!!
-# https://data.bn.org.pl/api/authorities.xml?limit=100&name=To%C5%82stoj,%20Lew%20(1828-1910)
-url = 'https://data.bn.org.pl/api/authorities.json?'
-osoby_z_rekordow_lista_slownikow = []
-for i, osoba in tqdm(enumerate(osoby_z_rekordow), total=len(osoby_z_rekordow)):
-    slownik_osoby = {}
-    # i = 381
-    # osoba = osoby_z_rekordow[i]
-    slownik_osoby['MARC name'] = osoba
-    osoba = marc_parser_dict_for_field(osoba, '\$')
-    osoba = ' '.join([v for k, v in osoba.items()])
-    slownik_osoby['simple name'] = osoba
-    params = {'name': osoba, 'limit':'100'}
-    result = requests.get(url, params = params).json()
-    authority = [e['marc']['fields'] for e in result['authorities'] if e['title'] == '']
-    authority = [[d for d in e if any(a in ['001', '024', '100'] for a in d)] for e in authority]
-    # authority = [e for sub in authority for e in sub]
-    if len(authority) == 0:
-        osoba2 = osoba.replace('?', '')
-        slownik_osoby['simple name (no question mark)'] = osoba2
-        params = {'name': osoba2, 'limit':'100'}
-        result = requests.get(url, params = params).json()
-        authority = [e['marc']['fields'] for e in result['authorities'] if e['title'] == '']
-        authority = [[d for d in e if any(a in ['001', '024', '100'] for a in d)] for e in authority]
-        # authority = [e for sub in authority for e in sub]
-    for e in authority:
-        person_in_authority = [a['100']['subfields'] for a in e if '100' in a]
-        person_in_authority = [a for sub in person_in_authority for a in sub]
-        person_in_authority = [[v for k,v in a.items()] for a in person_in_authority]
-        person_in_authority = ' '.join([a for sub in person_in_authority for a in sub])
-        try:
-            if person_in_authority == osoba or person_in_authority == osoba2:
-                for d in e:
-                    if '001' in d:
-                        id = d['001']
-                        if 'BN ID' in slownik_osoby:
-                            slownik_osoby['BN ID'] = '❦'.join([id, slownik_osoby['BN ID']])
-                        else:
-                            slownik_osoby['BN ID'] = id
-                    elif '024' in d:
-                        viaf = d['024']['subfields']
-                        for el in viaf:
-                            for di in el:
-                                if 'a' in di:
-                                    viaf = re.findall('\d+', el['a'])[0]
-                                    if 'VIAF ID' in slownik_osoby:
-                                        slownik_osoby['VIAF ID'] = '❦'.join([viaf, slownik_osoby['VIAF ID']])
-                                    else:
-                                        slownik_osoby['VIAF ID'] = viaf
-        except NameError:
-            if person_in_authority == osoba:
-                for d in e:
-                    if '001' in d:
-                        id = d['001']
-                        if 'BN ID' in slownik_osoby:
-                            slownik_osoby['BN ID'] = '❦'.join([id, slownik_osoby['BN ID']])
-                        else:
-                            slownik_osoby['BN ID'] = id
-                    elif '024' in d:
-                        viaf = d['024']['subfields']
-                        for el in viaf:
-                            for di in el:
-                                if 'a' in di:
-                                    viaf = re.findall('\d+', el['a'])[0]
-                                    if 'VIAF ID' in slownik_osoby:
-                                        slownik_osoby['VIAF ID'] = '❦'.join([viaf, slownik_osoby['VIAF ID']])
-                                    else:
-                                        slownik_osoby['VIAF ID'] = viaf
-            
-    slownik_osoby = {k:'❦'.join(list(set(v.split('❦')))) for k,v in slownik_osoby.items()}
-    osoby_z_rekordow_lista_slownikow.append(slownik_osoby)
-
-
-# 03 - utożsamienie z VIAF
+viaf = '49338782'
 # 04 - utożsamienie z wikidatą
-url = 'https://query.wikidata.org/sparql'       
+url = 'https://query.wikidata.org/sparql'     
+
+sparql_query = """SELECT ?property ?propertyLabel ?value WHERE {    
+?property wikibase:propertyType wikibase:ExternalId .    
+?property wikibase:directClaim ?propertyclaim .   
+OPTIONAL {?property wdt:P1630 ?formatterURL .}   wd:Q680 ?propertyclaim ?_value .    BIND(IF(BOUND(?formatterURL), IRI(REPLACE(?formatterURL, "\\$", ?_value)) , ?_value) AS ?value) SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }                                     }"""
+
+  
 for i, osoba in enumerate(tqdm(osoby_z_rekordow_lista_slownikow, total=len(osoby_z_rekordow_lista_slownikow))):
     while True:
         try:
             viaf = osoba['VIAF ID']
             sparql_query = f"""PREFIX wdt: <http://www.wikidata.org/prop/direct/>
-            SELECT distinct ?autor ?autorLabel ?birthplaceLabel ?deathplaceLabel ?birthdate ?deathdate ?sexLabel ?pseudonym ?occupationLabel ?genreLabel WHERE {{ 
+            SELECT distinct ?autor ?autorLabel ?birthplaceLabel ?deathplaceLabel ?birthdate ?deathdate ?sexLabel ?pseudonym ?occupationLabel ?genreLabel ?aliasLabel WHERE {{ 
               ?autor wdt:P214 "{viaf}" ;
               optional {{ ?autor wdt:P19 ?birthplace . }}
               optional {{ ?autor wdt:P569 ?birthdate . }}
@@ -180,6 +103,7 @@ for i, osoba in enumerate(tqdm(osoby_z_rekordow_lista_slownikow, total=len(osoby
               optional {{ ?autor wdt:P106 ?occupation . }}
               optional {{ ?autor wdt:P742 ?pseudonym . }}
               optional {{ ?autor wdt:P136 ?genre . }}
+              optional {{ ?autor rdfs:label ?alias . }}
             SERVICE wikibase:label {{ bd:serviceParam wikibase:language "pl". }}}}"""    
             results = requests.get(url, params = {'format': 'json', 'query': sparql_query})
             results = results.json()

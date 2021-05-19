@@ -12,28 +12,29 @@ def query_wikidata(list_of_dicts):
             try:
                 viaf = osoba['VIAF_ID']
                 sparql_query = f"""PREFIX wdt: <http://www.wikidata.org/prop/direct/>
-                SELECT distinct ?autor ?autorLabel ?birthplaceLabel ?deathplaceLabel ?birthdate ?deathdate ?sexLabel ?pseudonym ?occupationLabel ?genreLabel ?aliasLabel WHERE {{ 
-                  ?autor wdt:P214 "{viaf}" ;
-                  optional {{ ?autor wdt:P19 ?birthplace . }}
-                  optional {{ ?autor wdt:P569 ?birthdate . }}
-                  optional {{ ?autor wdt:P570 ?deathdate . }}
-                  optional {{ ?autor wdt:P20 ?deathplace . }}
-                  optional {{ ?autor wdt:P21 ?sex . }}
-                  optional {{ ?autor wdt:P106 ?occupation . }}
-                  optional {{ ?autor wdt:P742 ?pseudonym . }}
-                  optional {{ ?autor wdt:P136 ?genre . }}
-                  optional {{ ?autor rdfs:label ?alias . }}
+                SELECT distinct ?author ?authorLabel ?birthplaceLabel ?deathplaceLabel ?birthdate ?deathdate ?sexLabel ?pseudonym ?occupationLabel ?genreLabel ?birthNameLabel ?aliasLabel WHERE {{ 
+                  ?author wdt:P214 "{viaf}" ;
+                  optional {{ ?author wdt:P19 ?birthplace . }}
+                  optional {{ ?author wdt:P569 ?birthdate . }}
+                  optional {{ ?author wdt:P570 ?deathdate . }}
+                  optional {{ ?author wdt:P20 ?deathplace . }}
+                  optional {{ ?author wdt:P21 ?sex . }}
+                  optional {{ ?author wdt:P106 ?occupation . }}
+                  optional {{ ?author wdt:P742 ?pseudonym . }}
+                  optional {{ ?author wdt:P136 ?genre . }}
+                  optional {{ ?author rdfs:label ?alias . }}
+                  optional {{ ?author wdt:P1477 ?birthName . }}
                 SERVICE wikibase:label {{ bd:serviceParam wikibase:language "pl". }}}}"""    
                 results = requests.get(url, params = {'format': 'json', 'query': sparql_query})
                 results = results.json()
                 results_df = pd.json_normalize(results['results']['bindings'])
                 columns = [e for e in results_df.columns.tolist() if 'value' in e]
                 results_df = results_df[results_df.columns.intersection(columns)]       
-                for column in results_df.drop(columns='autor.value'):
-                    results_df[column] = results_df.groupby('autor.value')[column].transform(lambda x: '❦'.join(x.drop_duplicates().astype(str)))
+                for column in results_df.drop(columns='author.value'):
+                    results_df[column] = results_df.groupby('author.value')[column].transform(lambda x: '❦'.join(x.drop_duplicates().astype(str)))
                 results_df = results_df.drop_duplicates().reset_index(drop=True)   
                 result = results_df.to_dict('records')
-                list_of_dicts[i]['wikidata_ID'] = result
+                list_of_dicts[i]['wikidata_ID'] = result[0]
                 time.sleep(1)
             except (AttributeError, KeyError, ValueError):
                 time.sleep(1)
@@ -45,7 +46,23 @@ def query_wikidata(list_of_dicts):
     return list_of_dicts
     
 
-
+# sparql_query = """PREFIX wdt: <http://www.wikidata.org/prop/direct/>
+#                 SELECT distinct ?author ?authorLabel ?birthplaceLabel ?deathplaceLabel ?birthdate ?deathdate ?sexLabel 
+# ?pseudonym ?occupationLabel ?genreLabel ?birthNameLabel ?aliasLabel ?birthCountryLabel ?deathCountryLabel ?birthplace WHERE { 
+#                   ?author wdt:P214 "64016160" ;
+#                   optional { ?author wdt:P19 ?birthplace . }
+#                   optional { ?author wdt:P569 ?birthdate . }
+#                   optional { ?author wdt:P570 ?deathdate . }
+#                   optional { ?author wdt:P20 ?deathplace . }
+#                   optional { ?author wdt:P21 ?sex . }
+#                   optional { ?author wdt:P106 ?occupation . }
+#                   optional { ?author wdt:P742 ?pseudonym . }
+#                   optional { ?author wdt:P136 ?genre . }
+#                   optional { ?author rdfs:label ?alias . }
+#                   optional { ?author wdt:P1477 ?birthName . }
+#                   optional { ?birthplace wdt:P17 ?birthCountry . }
+#                   optional { ?deathplace wdt:P17 ?deathCountry . }
+#                 SERVICE wikibase:label { bd:serviceParam wikibase:language "pl". }}"""
 
 
 

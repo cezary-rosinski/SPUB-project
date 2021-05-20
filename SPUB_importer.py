@@ -1,11 +1,18 @@
 from SPUB_importer_read_data import read_MARC21, get_list_of_people, get_list_of_records
 from SPUB_importer_query_national_library import query_national_library
 from SPUB_query_wikidata import query_wikidata
+import datetime
+
+
+#%% date
+now = datetime.datetime.now()
+year = now.year
+month = '{:02}'.format(now.month)
+day = '{:02}'.format(now.day)
 
 
 
-
-
+#%% main
 #read data
 
 marc21_records = read_MARC21('bn_harvested_2021_05_12.mrk')

@@ -12,7 +12,7 @@ def query_wikidata(list_of_dicts):
             try:
                 viaf = osoba['VIAF_ID']
                 sparql_query = f"""PREFIX wdt: <http://www.wikidata.org/prop/direct/>
-                SELECT distinct ?author ?authorLabel ?birthplaceLabel ?deathplaceLabel ?birthdate ?deathdate ?sexLabel ?pseudonym ?occupationLabel ?genreLabel ?birthNameLabel ?aliasLabel WHERE {{ 
+                SELECT distinct ?author ?authorLabel ?birthplaceLabel ?deathplaceLabel ?birthdate ?deathdate ?sexLabel ?pseudonym ?occupationLabel ?genreLabel ?birthNameLabel ?aliasLabel ?birthplace ?deathplace WHERE {{ 
                   ?author wdt:P214 "{viaf}" ;
                   optional {{ ?author wdt:P19 ?birthplace . }}
                   optional {{ ?author wdt:P569 ?birthdate . }}
@@ -46,24 +46,11 @@ def query_wikidata(list_of_dicts):
     return list_of_dicts
     
 
-# sparql_query = """PREFIX wdt: <http://www.wikidata.org/prop/direct/>
-#                 SELECT distinct ?author ?authorLabel ?birthplaceLabel ?deathplaceLabel ?birthdate ?deathdate ?sexLabel 
-# ?pseudonym ?occupationLabel ?genreLabel ?birthNameLabel ?aliasLabel ?birthCountryLabel ?deathCountryLabel ?birthplace WHERE { 
-#                   ?author wdt:P214 "64016160" ;
-#                   optional { ?author wdt:P19 ?birthplace . }
-#                   optional { ?author wdt:P569 ?birthdate . }
-#                   optional { ?author wdt:P570 ?deathdate . }
-#                   optional { ?author wdt:P20 ?deathplace . }
-#                   optional { ?author wdt:P21 ?sex . }
-#                   optional { ?author wdt:P106 ?occupation . }
-#                   optional { ?author wdt:P742 ?pseudonym . }
-#                   optional { ?author wdt:P136 ?genre . }
-#                   optional { ?author rdfs:label ?alias . }
-#                   optional { ?author wdt:P1477 ?birthName . }
-#                   optional { ?birthplace wdt:P17 ?birthCountry . }
-#                   optional { ?deathplace wdt:P17 ?deathCountry . }
-#                 SERVICE wikibase:label { bd:serviceParam wikibase:language "pl". }}"""
+viaf = '49338782'
 
+zapytanie_dla_kraju = """PREFIX wdt: <http://www.wikidata.org/prop/direct/>
+                SELECT distinct ?country ?countryLabel WHERE {
+                  wd:Q457865 wdt:P17 ?country .
+SERVICE wikibase:label { bd:serviceParam wikibase:language "pl". }}"""
 
-
-
+#to wd:Q457865 do podmiany

@@ -1,7 +1,9 @@
 from SPUB_importer_read_data import read_MARC21, get_list_of_people, get_list_of_records
 from SPUB_importer_query_national_library import query_national_library
-from SPUB_query_wikidata import query_wikidata
+from SPUB_query_wikidata import query_wikidata, query_wikidata_for_country
 import datetime
+import pandas as pd
+from tqdm import tqdm
 
 
 #%% date
@@ -31,15 +33,19 @@ people_list_of_dicts = query_national_library(people_list)
 
 people_list_of_dicts = query_wikidata(people_list_of_dicts)
 
+#flat the dictionaries
+
+people_list_of_dicts = [pd.json_normalize(e).to_dict(orient='reocords')[0] for e in people_list_of_dicts]
+people_df = pd.concat([pd.json_normalize(e) for e in people_list_of_dicts])
+
+places_from_people = pd.concat([people_df['wikidata_ID.birthplace.value'], people_df['wikidata_ID.deathplace.value']]).drop_duplicates().dropna().to_list()
+
+places_from_people_wikidata = []
+for i, place in tqdm(enumerate(places_from_people), total=len(places_from_people)):
+    places_from_people_wikidata.append(query_wikidata_for_country(place))
+
+
 #create XML
-
-xml_nodes_names = ['pbl', 'files', 'people']
-
-
-
-
-
-
 
 
 

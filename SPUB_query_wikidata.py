@@ -45,25 +45,52 @@ def query_wikidata(list_of_dicts):
                 continue
             break
     return list_of_dicts
-    
-def query_wikidata_for_country(place_url):
+
+def get_language_from_wikidata(df, language='pl'):
     try:
-        place_id = re.findall('Q\d+', place_url)[-1]
-        url = 'https://query.wikidata.org/sparql'
-        sparql_query = f"""PREFIX wdt: <http://www.wikidata.org/prop/direct/>
-                    SELECT distinct ?country ?countryLabel WHERE {{
-                      wd:{place_id} wdt:P17 ?country .
-                      SERVICE wikibase:label {{ bd:serviceParam wikibase:language "pl". }}}}"""
-        results = requests.get(url, params = {'format': 'json', 'query': sparql_query})
-        results = results.json()            
-        results_df = pd.json_normalize(results['results']['bindings'])            
-        columns = [e for e in results_df.columns.tolist() if 'value' in e]
-        results_df = results_df[results_df.columns.intersection(columns)].drop_duplicates().reset_index(drop=True)
-        results_df['place.value'] = place_url   
-        result = results_df.to_dict('records')
-        return result 
-    except ValueError:
-        pass
+        if language in df['placeLabel.xml:lang'].unique():
+            return df[df['placeLabel.xml:lang'] == language]
+        else:
+            return df[df['placeLabel.xml:lang'] == 'en']
+    except KeyError:
+        return df
+       
+def query_wikidata_for_country(place_url):
+    url = 'https://query.wikidata.org/sparql'
+    while True:
+        try:
+            place_id = re.findall('Q\d+', place_url)[-1]
+            sparql_query = f"""PREFIX wdt: <http://www.wikidata.org/prop/direct/>
+                        SELECT distinct ?placeLabel ?country ?countryLabel ?officialName ?starttime ?endtime ?coordinates ?geonamesID WHERE {{
+                          wd:{place_id} rdfs:label ?placeLabel .
+                          optional {{ wd:{place_id} wdt:P17 ?country . }}
+                          optional {{ wd:{place_id} wdt:P625 ?coordinates . }}
+                          optional {{ wd:{place_id} wdt:P1566 ?geonamesID . }}
+                          optional {{ wd:{place_id} p:P1448 ?statement . }}
+                          bind(coalesce(?statement,"brak danych" ^^xsd:string) as ?test)
+                          optional {{ ?test ps:P1448 ?officialName . }}
+                          optional {{ ?test pq:P580 ?starttime . }}
+                          optional {{ ?test pq:P582 ?endtime . }}
+                          SERVICE wikibase:label {{ bd:serviceParam wikibase:language "pl". }}}}"""
+            results = requests.get(url, params = {'format': 'json', 'query': sparql_query})
+            results = results.json()     
+            results_df = pd.json_normalize(results['results']['bindings']) 
+            results_df = get_language_from_wikidata(results_df)
+            columns = [e for e in results_df.columns.tolist() if 'value' in e]
+            results_df = results_df[results_df.columns.intersection(columns)].drop_duplicates().reset_index(drop=True)
+            results_df['place.value'] = place_url 
+            result = results_df.to_dict('records')
+            time.sleep(1)
+            return result 
+            time.sleep(1)
+        except (HTTPError, RemoteDisconnected) as error:
+            print(error)# time.sleep(61)
+            time.sleep(5)
+            continue
+        except ValueError:
+            time.sleep(1)
+            pass
+        
              
                 
                 

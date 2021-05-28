@@ -14,7 +14,7 @@ for i, e in enumerate(people_list_of_dicts):
     if 'Prus' in e['name_simple']:
         print(i)
 
-osoba = people_list_of_dicts[254]
+osoba = people_list_of_dicts[78]
 
 person_name_types = ['main-name',
                      'family-name',
@@ -25,21 +25,13 @@ person_name_types = ['main-name',
                      'group-alias'
                      ]
 
-name_types_dict = {'pseudonym.value':'alias', 
-                   'autorLabel.value':'main-name',  
-                   'sexLabel.value': 'sex', 
-                   'aliasLabel.value': 'other-last-name-or-first-name',
+name_types_dict = {'wikidata_ID.pseudonym.value':'alias', 
+                   'wikidata_ID.autorLabel.value':'main-name',  
+                   'wikidata_ID.sexLabel.value': 'sex', 
+                   'wikidata_ID.aliasLabel.value': 'other-last-name-or-first-name',
                    'name_simple': 'main-name',
-                   'birthNameLabel.value': 'family-name'
-                   #dodać nazewnictwo z urodzenia (dla Prusa)
+                   'wikidata_ID.birthNameLabel.value': 'family-name'
                    }
-
-birth_death_dict = {'birthdate.value',
-                    'birthplaceLabel.value',
-                    'deathdate.value',
-                    'deathplaceLabel.value'
-                    #wydobyć kraj
-                    }
 
 def create_node_structure(xml_nodes_names):
     xml_nodes = {}
@@ -54,30 +46,64 @@ def create_node_structure(xml_nodes_names):
         
 def create_name(parent, dict_data, transliteration):
     try:
-        for k,v in dict_data['wikidata_ID'].items():
+        for k,v in dict_data.items():
             if k in name_types_dict:
                 v = v.split('❦')
                 for val in v:
                     if name_types_dict[k] in person_name_types:
                         name = ET.SubElement(parent, "name", transliteration=transliteration, code=name_types_dict[k])
                     else:
-                        name = ET.SubElement(parent, "name", code=name_types_dict.get(k))
+                        name = ET.SubElement(parent, "name", code=name_types_dict[k])
                     name.text = val
     except KeyError:
         name = ET.SubElement(parent, "name", transliteration=transliteration, code=name_types_dict['name_simple'])
         name.text = dict_data['name_simple']
 
-#query wikidaty nie działa poprawnie - kraj urodzenia i kraj zgonu!!!        
-def create_birth_death(parent, dict_data):
+place_dict = {'coordinates.value':'lat_lon',
+              'countryLabel.value':'country',
+              'endtime.value':'date_to',
+              'starttime.value':'date_from',
+              'place.value':'id',
+              'placeLabel.value':'name',
+              'officialName.value':'name',
+              'geonamesID.value':'geonames'}
+        
+def create_place(dict_data, kind='birth'):
+    dict_data = people_list_of_dicts[3]
+    for element in dict_data[f'wikidata_ID.{kind}place.value']:
+        list_for_place = []
+        for k,v in element.items():
+            try:
+                test = place_dict[k]
+                test2 = v
+                list_for_place.append([test, test2])
+            except KeyError:
+                pass
+        empty_dict = {}
+        for name, value in list_for_place:
+            if name == 'lat_lon':
+                empty_dict['lat'] = str(value['coordinates'][0])
+                empty_dict['lon'] = str(value['coordinates'][1])
+            else:
+                empty_dict[name] = value
+        place = ET.Element('place', empty_dict)
+          
+tree = ET.ElementTree(place)
+tree.write('test2.xml', encoding='UTF-8')
+     
+def create_birth(parent, dict_data, date_from, date_from_bc=False, date_to='', date_to_bc='', date_uncertain='False', date_in_words='', place_id, place_geonames, place_lat, place_lon):
     try:
-        for k,v in dict_data['wikidata_ID'].items():
+        for k,v in dict_data.items():
+            if k == 'wikidata_ID.birthdate.value':
+                
+            
             if k == 'birthplaceLabel.value':
                 birth = ET.SubElement(parent, "birth", code="place")
                 birth.text = v
             elif
             
         
-    except KeyError:
+#     except KeyError:
 
 
 xml_nodes = create_node_structure(['pbl', 'files', 'people'])
@@ -93,7 +119,6 @@ create_name(xml_nodes['names'], osoba, 'no')
     
 tree = ET.ElementTree(xml_nodes['pbl'])
 tree.write('test.xml', encoding='UTF-8')
-
 
 
 

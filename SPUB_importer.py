@@ -1,9 +1,13 @@
 from SPUB_importer_read_data import read_MARC21, get_list_of_people, get_list_of_records
 from SPUB_importer_query_national_library import query_national_library
 from SPUB_query_wikidata import query_wikidata, query_wikidata_for_country
+from SPUB_stack_in_db import create_db
 import datetime
 import pandas as pd
 from tqdm import tqdm
+import json
+from geojson import Point
+import numpy as np
 
 
 #%% date
@@ -33,24 +37,176 @@ people_list_of_dicts = query_national_library(people_list)
 
 people_list_of_dicts = query_wikidata(people_list_of_dicts)
 
-#flat the dictionaries
+#send people to people db
 
-people_list_of_dicts = [pd.json_normalize(e).to_dict(orient='reocords')[0] for e in people_list_of_dicts]
+people_list_of_dicts = [pd.json_normalize(e).to_dict(orient='records')[0] for e in people_list_of_dicts]
+
 people_df = pd.concat([pd.json_normalize(e) for e in people_list_of_dicts])
+create_db('import.db', [people_df[['name_MARC21', 'name_simple', 'BN_ID', 'VIAF_ID', 'wikidata_ID.author.value']]], ['people'])
+
+#save people JSON
+
+with open('import_people.json', 'w', encoding='utf-8') as f:
+    json.dump(people_list_of_dicts, f)
+
+#query places
 
 places_from_people = pd.concat([people_df['wikidata_ID.birthplace.value'], people_df['wikidata_ID.deathplace.value']]).drop_duplicates().dropna().to_list()
+places_from_people = [e.split('❦') for e in places_from_people]
+places_from_people = list(set([e for sub in places_from_people for e in sub]))
+
+textfile = open("a_file.txt", "w")
+for element in places_from_people:
+    textfile.write(element + "\n")
+textfile.close()
 
 places_from_people_wikidata = []
 for i, place in tqdm(enumerate(places_from_people), total=len(places_from_people)):
     places_from_people_wikidata.append(query_wikidata_for_country(place))
+    
+with open('places_wikidata.json', 'w', encoding='utf-8') as f:
+    json.dump(places_from_people_wikidata, f)
+
+#main
+
+with open('import_people.json') as json_file:
+    people_list_of_dicts = json.load(json_file)
+
+with open('places_wikidata.json') as json_file:
+    places_from_people_wikidata = json.load(json_file)
+
+test = [e for sub in places_from_people_wikidata for e in sub]
+test = pd.concat([pd.json_normalize(e) for e in test]).reset_index(drop=True)
+
+def names_if_dates(x):
+    a = x['starttime.value']
+    b = x['endtime.value']
+    c = x['officialName.value']
+    if any(pd.notnull(e) for e in [a, b]):
+        return c
+    else:
+        return np.nan
+
+test['officialName.value'] = test.apply(lambda x: names_if_dates(x), axis=1)
+test = test.drop_duplicates().reset_index(drop=True)
+
+test['coordinates.value'] = test['coordinates.value'].apply(lambda x: Point(tuple([float(e) for e in re.findall('[\d\.-]+', x)][::-1])) if pd.notnull(x) else np.nan)
+
+#chyba miejscowość trzeba tak spiąć, żeby na jednym poziomie było id, geonames, lat i lon, a na drugim poziomie name + country ORAZ wszystkie nazwy z datami
+
+for i, dictionary in enumerate(people_list_of_dicts):
+    # i = 375
+    # dictionary = people_list_of_dicts[i]
+    try:
+        birth = dictionary['wikidata_ID.birthplace.value']
+        birth_list = []
+        for place in birth.split('❦'):
+            df = test[test['place.value'] == place].dropna(axis=1)
+            result = df.to_dict('records')[0]
+            birth_list.append(result)
+        people_list_of_dicts[i]['wikidata_ID.birthplace.value'] = birth_list
+    except (IndexError, KeyError):
+        pass
+    try:
+        death = dictionary['wikidata_ID.deathplace.value']
+        death_list = []
+        for place in death.split('❦'):
+            df = test[test['place.value'] == place].dropna(axis=1)
+            result = df.to_dict('records')[0]
+            death_list.append(result)
+        people_list_of_dicts[i]['wikidata_ID.deathplace.value'] = death_list
+    except (IndexError, KeyError):
+        pass
+#send places to places db
 
 
 #create XML
 
+people_list_of_dicts = [pd.json_normalize(e).to_dict(orient='records')[0] for e in people_list_of_dicts]
+
+mickiewicz = pd.json_normalize(people_list_of_dicts[62]).to_dict(orient='records')
 
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#institutions
+    
+institutions_list = get_list_of_people(bibliographical_records, ('=110', '=610', '=710'), '(\$x|\$4|\$e|\.\$t).*')
+#query national library
+
+institutions_list_of_dicts = query_national_library(institutions_list)
+
+url = 'https://data.bn.org.pl/api/authorities.json?'
+list_of_dicts = []
+for i, person in tqdm(enumerate(list_of_people), total=len(list_of_people)):
+    person_dict = {}
+    person_dict['name_MARC21'] = person
+    person = marc_parser_dict_for_field(person, '\$')
+    person = ' '.join([v for k, v in person.items()])
+    person_dict['name_simple'] = person
+    params = {'name': person, 'limit':'100'}
+    result = requests.get(url, params = params).json()
+    authority = [e['marc']['fields'] for e in result['authorities'] if e['title'] == '']
+    authority = [[d for d in e if any(a in ['001', '024', '100'] for a in d)] for e in authority]
+    person2 = person.replace('?', '')
+    if len(authority) == 0:
+        person_dict['name_simple_no_question_mark'] = person2
+        params = {'name': person2, 'limit':'100'}
+        result = requests.get(url, params = params).json()
+        authority = [e['marc']['fields'] for e in result['authorities'] if e['title'] == '']
+        authority = [[d for d in e if any(a in ['001', '024', '100'] for a in d)] for e in authority]
+    for e in authority:
+        person_in_authority = [a['100']['subfields'] for a in e if '100' in a]
+        person_in_authority = [a for sub in person_in_authority for a in sub]
+        person_in_authority = [[v for k,v in a.items()] for a in person_in_authority]
+        person_in_authority = ' '.join([a for sub in person_in_authority for a in sub])
+        if person_in_authority == person or person_in_authority == person2:
+            for d in e:
+                if '001' in d:
+                    id = d['001']
+                    if 'BN_ID' in person_dict:
+                        person_dict['BN_ID'] = '❦'.join([id, person_dict['BN_ID']])
+                    else:
+                        person_dict['BN_ID'] = id
+                elif '024' in d:
+                    viaf = d['024']['subfields']
+                    for el in viaf:
+                        for di in el:
+                            if 'a' in di:
+                                viaf = re.findall('\d+', el['a'])[0]
+                                if 'VIAF_ID' in person_dict:
+                                    person_dict['VIAF_ID'] = '❦'.join([viaf, person_dict['VIAF_ID']])
+                                else:
+                                    person_dict['VIAF_ID'] = viaf
+                                        
+    person_dict = {k:'❦'.join(list(set(v.split('❦')))) for k,v in person_dict.items()}
+    list_of_dicts.append(person_dict)
 
 
 

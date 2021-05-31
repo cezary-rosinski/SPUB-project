@@ -8,6 +8,7 @@ from tqdm import tqdm
 import json
 from geojson import Point
 import numpy as np
+import regex as re
 
 
 #%% date
@@ -34,6 +35,7 @@ people_list = get_list_of_people(bibliographical_records, ('=100', '=600', '=700
 people_list_of_dicts = query_national_library(people_list)
 
 #query wikidata
+# odpytać jeszcze raz, bo Sapkowski nie dostał wikidaty - czemu?
 
 people_list_of_dicts = query_wikidata(people_list_of_dicts)
 
@@ -90,20 +92,55 @@ def names_if_dates(x):
 test['officialName.value'] = test.apply(lambda x: names_if_dates(x), axis=1)
 test = test.drop_duplicates().reset_index(drop=True)
 
+coord= test.groupby('place.value')['coordinates.value'].max()
+test['coordinates.value'] = test['place.value'].map(coord)
+
+test = test.drop_duplicates().reset_index(drop=True)
+
 test['coordinates.value'] = test['coordinates.value'].apply(lambda x: Point(tuple([float(e) for e in re.findall('[\d\.-]+', x)][::-1])) if pd.notnull(x) else np.nan)
+
+#place: id, geo, lat, lon
+#name_place: name, date from, date to, country
+
+
 
 #chyba miejscowość trzeba tak spiąć, żeby na jednym poziomie było id, geonames, lat i lon, a na drugim poziomie name + country ORAZ wszystkie nazwy z datami
 
+
+
 for i, dictionary in enumerate(people_list_of_dicts):
     # i = 375
+    # i = 154
     # dictionary = people_list_of_dicts[i]
     try:
         birth = dictionary['wikidata_ID.birthplace.value']
         birth_list = []
         for place in birth.split('❦'):
-            df = test[test['place.value'] == place].dropna(axis=1)
-            result = df.to_dict('records')[0]
-            birth_list.append(result)
+            # place = birth.split('❦')[0]
+            place_dict = {}
+            place_dict['place_name'] = []
+            df = test[test['place.value'] == place].dropna(how='all', axis=1)
+            result = df.to_dict('records')
+            try:
+                if any(e for e in result if e['placeLabel.value'] == e['officialName.value']):
+                    result = [{key: value for key, value in some_dict.items() if key != 'placeLabel.value'} for some_dict in result]
+            except KeyError:
+                pass
+
+            for ind, element in enumerate(result):
+                
+                for k,v in element.items():
+                    
+                    if k in ['place.value', 'geonamesID.value', 'coordinates.value'] and k not in place_dict:
+                        place_dict[k] = v
+                    else:
+                        if pd.notnull(v) and k not in ['place.value', 'geonamesID.value', 'coordinates.value']:
+                           
+                            try: 
+                                place_dict['place_name'][ind].update({k:v})
+                            except IndexError:
+                                place_dict['place_name'].append({k:v})
+            birth_list.append(place_dict)
         people_list_of_dicts[i]['wikidata_ID.birthplace.value'] = birth_list
     except (IndexError, KeyError):
         pass
@@ -111,13 +148,63 @@ for i, dictionary in enumerate(people_list_of_dicts):
         death = dictionary['wikidata_ID.deathplace.value']
         death_list = []
         for place in death.split('❦'):
-            df = test[test['place.value'] == place].dropna(axis=1)
-            result = df.to_dict('records')[0]
-            death_list.append(result)
+            # place = death.split('❦')[0]
+            place_dict = {}
+            place_dict['place_name'] = []
+            df = test[test['place.value'] == place].dropna(how='all', axis=1)
+            result = df.to_dict('records')
+            try:
+                if any(e for e in result if e['placeLabel.value'] == e['officialName.value']):
+                    result = [{key: value for key, value in some_dict.items() if key != 'placeLabel.value'} for some_dict in result]
+            except KeyError:
+                pass
+
+            for ind, element in enumerate(result):
+                
+                for k,v in element.items():
+                    
+                    if k in ['place.value', 'geonamesID.value', 'coordinates.value'] and k not in place_dict:
+                        place_dict[k] = v
+                    else:
+                        if pd.notnull(v) and k not in ['place.value', 'geonamesID.value', 'coordinates.value']:
+                           
+                            try: 
+                                place_dict['place_name'][ind].update({k:v})
+                            except IndexError:
+                                place_dict['place_name'].append({k:v})
+            death_list.append(place_dict)
         people_list_of_dicts[i]['wikidata_ID.deathplace.value'] = death_list
     except (IndexError, KeyError):
         pass
 #send places to places db
+        
+
+
+for i, osoba in enumerate(people_list_of_dicts):
+    try: 
+        for ind, dictionary in enumerate(osoba['wikidata_ID.birthplace.value']):
+            # ind = 1
+            # dictionary = osoba['wikidata_ID.birthplace.value'][1]
+            for index, place in enumerate(dictionary['place_name']):
+                # place = dictionary['place_name'][0]
+                if 'placeLabel.value' in place and 'officialName.value' in place:
+                    dictionary_1 = {key: value for key, value in place.items() if key != 'placeLabel.value'}
+                    dictionary_2 = {key: value for key, value in place.items() if key not in ['officialName.value', 'startime.value', 'endtime.value']}
+                    people_list_of_dicts[i]['wikidata_ID.birthplace.value'][ind]['place_name'] = [dictionary_1, dictionary_2]
+    except KeyError:
+        pass
+    try:                
+        for ind, dictionary in enumerate(osoba['wikidata_ID.birthplace.value']):
+             for index, place in enumerate(dictionary['place_name']):
+                if 'placeLabel.value' in place and 'officialName.value' in place:
+                    dictionary_1 = {key: value for key, value in place.items() if key != 'placeLabel.value'}
+                    dictionary_2 = {key: value for key, value in place.items() if key not in ['officialName.value', 'startime.value', 'endtime.value']}
+                    people_list_of_dicts[i]['wikidata_ID.deathplace.value'][ind]['place_name'] = [dictionary_1, dictionary_2]
+    except KeyError:
+        pass
+                
+        
+    
 
 
 #create XML
@@ -127,12 +214,22 @@ people_list_of_dicts = [pd.json_normalize(e).to_dict(orient='records')[0] for e 
 mickiewicz = pd.json_normalize(people_list_of_dicts[62]).to_dict(orient='records')
 
 
+lista = []
+for e in people_list_of_dicts:
+    for k,v in e.items():
+        if v == 'http://www.wikidata.org/entity/Q1799':
+            lista.append(e)
+        
 
 
+#Nowogródek - placelabelvalue != officialName.value -> wtedy zrobić 2 entry
 
 
+for i, e in enumerate(people_list_of_dicts):
+    if 'Mickiewicz' in e['name_simple']:
+        print(i)
 
-
+osoba = people_list_of_dicts[62].copy() 
 
 
 

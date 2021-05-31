@@ -90,6 +90,9 @@ def create_place(dict_data, kind='birth'):
           
 tree = ET.ElementTree(place)
 tree.write('test2.xml', encoding='UTF-8')
+
+def create_place_alt_names():
+    
      
 def create_birth(parent, dict_data, date_from, date_from_bc=False, date_to='', date_to_bc='', date_uncertain='False', date_in_words='', place_id, place_geonames, place_lat, place_lon):
     try:

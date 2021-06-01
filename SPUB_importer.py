@@ -2,22 +2,15 @@ from SPUB_importer_read_data import read_MARC21, get_list_of_people, get_list_of
 from SPUB_importer_query_national_library import query_national_library
 from SPUB_query_wikidata import query_wikidata, query_wikidata_for_country
 from SPUB_stack_in_db import create_db
-import datetime
+from SPUB_create_XML_file_people import create_node_structure, create_person, create_name, create_birth_death_date, create_place, create_remark, create_tags, create_links
 import pandas as pd
 from tqdm import tqdm
 import json
 from geojson import Point
 import numpy as np
 import regex as re
-
-
-#%% date
-now = datetime.datetime.now()
-year = now.year
-month = '{:02}'.format(now.month)
-day = '{:02}'.format(now.day)
-
-
+import xml.etree.cElementTree as ET
+import lxml.etree
 
 #%% main
 #read data
@@ -99,14 +92,8 @@ test = test.drop_duplicates().reset_index(drop=True)
 
 test['coordinates.value'] = test['coordinates.value'].apply(lambda x: Point(tuple([float(e) for e in re.findall('[\d\.-]+', x)][::-1])) if pd.notnull(x) else np.nan)
 
-#place: id, geo, lat, lon
-#name_place: name, date from, date to, country
-
-
-
-#chyba miejscowość trzeba tak spiąć, żeby na jednym poziomie było id, geonames, lat i lon, a na drugim poziomie name + country ORAZ wszystkie nazwy z datami
-
-
+#send places to places db
+create_db('import.db', [test[['placeLabel.value', 'place.value', 'countryLabel.value', 'country.value', 'geonamesID.value']]], ['places'])
 
 for i, dictionary in enumerate(people_list_of_dicts):
     # i = 375
@@ -175,10 +162,7 @@ for i, dictionary in enumerate(people_list_of_dicts):
             death_list.append(place_dict)
         people_list_of_dicts[i]['wikidata_ID.deathplace.value'] = death_list
     except (IndexError, KeyError):
-        pass
-#send places to places db
-        
-
+        pass       
 
 for i, osoba in enumerate(people_list_of_dicts):
     try: 
@@ -203,33 +187,26 @@ for i, osoba in enumerate(people_list_of_dicts):
     except KeyError:
         pass
                 
-        
-    
-
-
 #create XML
 
-people_list_of_dicts = [pd.json_normalize(e).to_dict(orient='records')[0] for e in people_list_of_dicts]
+xml_nodes = create_node_structure(['pbl', 'files', 'people'])
+for osoba in tqdm(people_list_of_dicts):    
+    xml_nodes['person'] = create_person(xml_nodes['people'], osoba)
+    xml_nodes['names'] = ET.SubElement(xml_nodes['person'], "names")          
+    create_name(xml_nodes['names'], osoba)   
+    xml_nodes['birth'] = ET.SubElement(xml_nodes['person'], "birth")       
+    create_birth_death_date(xml_nodes['birth'], osoba)
+    create_place(xml_nodes['birth'], osoba)
+    xml_nodes['death'] = ET.SubElement(xml_nodes['person'], "death")     
+    create_birth_death_date(xml_nodes['death'], osoba, kind='death')
+    create_place(xml_nodes['death'], osoba, kind='death')
+    create_remark(xml_nodes['person'], osoba)
+    create_tags(xml_nodes['person'], osoba)
+    create_links(xml_nodes['person'], osoba)
 
-mickiewicz = pd.json_normalize(people_list_of_dicts[62]).to_dict(orient='records')
-
-
-lista = []
-for e in people_list_of_dicts:
-    for k,v in e.items():
-        if v == 'http://www.wikidata.org/entity/Q1799':
-            lista.append(e)
-        
-
-
-#Nowogródek - placelabelvalue != officialName.value -> wtedy zrobić 2 entry
-
-
-for i, e in enumerate(people_list_of_dicts):
-    if 'Mickiewicz' in e['name_simple']:
-        print(i)
-
-osoba = people_list_of_dicts[62].copy() 
+    
+tree = ET.ElementTree(xml_nodes['pbl'])
+tree.write('import_people.xml', encoding='UTF-8')
 
 
 

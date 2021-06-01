@@ -36,9 +36,9 @@ def query_wikidata(list_of_dicts):
                 results_df = results_df.drop_duplicates().reset_index(drop=True)   
                 result = results_df.to_dict('records')
                 list_of_dicts[i]['wikidata_ID'] = result[0]
-                time.sleep(1)
+                time.sleep(2)
             except (AttributeError, KeyError, ValueError):
-                time.sleep(1)
+                time.sleep(2)
             except (HTTPError, RemoteDisconnected) as error:
                 print(error)# time.sleep(61)
                 time.sleep(5)
@@ -80,15 +80,15 @@ def query_wikidata_for_country(place_url):
             results_df = results_df[results_df.columns.intersection(columns)].drop_duplicates().reset_index(drop=True)
             results_df['place.value'] = place_url 
             result = results_df.to_dict('records')
-            time.sleep(1)
+            time.sleep(2)
             return result 
-            time.sleep(1)
+            time.sleep(2)
         except (HTTPError, RemoteDisconnected) as error:
             print(error)# time.sleep(61)
             time.sleep(5)
             continue
         except ValueError:
-            time.sleep(1)
+            time.sleep(2)
             pass
         
              

@@ -6,11 +6,11 @@ import datetime
 
 
     
-for i, e in enumerate(people_list_of_dicts):
-    if 'Sapkowski' in e['name_simple']:
-        print(i)
-#78, 62, 154, 3, 121
-osoba = people_list_of_dicts[37]
+# for i, e in enumerate(people_list_of_dicts):
+#     if 'Sapkowski' in e['name_simple']:
+#         print(i)
+# #78, 62, 154, 3, 121
+# osoba = people_list_of_dicts[37]
 
 person_name_types = ['main-name',
                      'family-name',
@@ -49,6 +49,10 @@ def create_node_structure(xml_nodes_names):
 def create_person(parent, dict_data, status='published'):
     empty_dict = {}
     # empty_dict['id'] = ?
+    try:
+        empty_dict['id'] = dict_data['BN_ID']
+    except KeyError:
+        empty_dict['id'] = dict_data['name_simple']
     try:
         empty_dict['viaf'] = dict_data['VIAF_ID']
     except KeyError:
@@ -119,7 +123,7 @@ def create_place(parent, dict_data, kind='birth'):
     except KeyError:
         pass
               
-def create_birth_death_date(parent, dict_data, kind='birth', to_bc='false', uncertain='false', in_words=''):
+def create_birth_death_date(parent, dict_data, kind='birth', to='', to_bc='false', uncertain='false', in_words=''):
     try:
         empty_dict = {}
         empty_dict['from'] = re.findall('.+(?=T)', dict_data[f'wikidata_ID.{kind}date.value'])[0]

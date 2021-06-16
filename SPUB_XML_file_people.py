@@ -7,7 +7,7 @@ import datetime
 
     
 # for i, e in enumerate(people_list_of_dicts):
-#     if 'Sapkowski' in e['name_simple']:
+#     if 'Mickiewicz' in e['name_simple']:
 #         print(i)
 # #78, 62, 154, 3, 121
 # osoba = people_list_of_dicts[37]
@@ -131,7 +131,7 @@ def create_birth_death_date(parent, dict_data, kind='birth', to='', to_bc='false
             empty_dict['from-bc'] = 'true'
         else:
             empty_dict['from-bc'] = 'false'
-        empty_dict['to-bc'], empty_dict['uncertain'], empty_dict['in_words'] = to_bc, uncertain, in_words
+        empty_dict['to-bc'], empty_dict['to'],empty_dict['uncertain'], empty_dict['in_words'] = to_bc, to, uncertain, in_words
         date = ET.SubElement(parent, 'date', empty_dict)
         return date
     except KeyError:

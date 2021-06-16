@@ -2,7 +2,7 @@ from SPUB_importer_read_data import read_MARC21, get_list_of_people, get_list_of
 from SPUB_importer_query_national_library import query_national_library
 from SPUB_query_wikidata import query_wikidata, query_wikidata_for_country
 from SPUB_stack_in_db import create_db
-from SPUB_create_XML_file_people import create_node_structure, create_person, create_name, create_birth_death_date, create_place, create_remark, create_tags, create_links
+from SPUB_XML_file_people import create_node_structure, create_person, create_name, create_birth_death_date, create_place, create_remark, create_tags, create_links
 import pandas as pd
 from tqdm import tqdm
 import json
@@ -81,23 +81,97 @@ def names_if_dates(x):
         return c
     else:
         return np.nan
+    
+def langs_if_dates(x):
+    a = x['starttime.value']
+    b = x['endtime.value']
+    c = x['officialName.xml:lang']
+    if any(pd.notnull(e) for e in [a, b]):
+        return c
+    else:
+        return np.nan
 
 test['officialName.value'] = test.apply(lambda x: names_if_dates(x), axis=1)
+test['officialName.xml:lang'] = test.apply(lambda x: langs_if_dates(x), axis=1)
 test = test.drop_duplicates().reset_index(drop=True)
 
-coord= test.groupby('place.value')['coordinates.value'].max()
+test_grouped = test.groupby('place.value')
+
+test = pd.DataFrame()
+for name, group in test_grouped:
+    names_name = group['officialName.value'].isna().sum()
+    total = group['officialName.value'].value_counts(dropna=False).sum()
+    if group.shape[0] > 1 and names_name < total:
+        group = group[group['officialName.value'].notnull()]
+        test = test.append(group)
+    else:
+        test = test.append(group)
+
+test['geonamesID.value'] = test.groupby('place.value')['geonamesID.value'].transform('min')
+test = test.drop_duplicates().reset_index(drop=True)
+
+coord = test.groupby('place.value')['coordinates.value'].max()
 test['coordinates.value'] = test['place.value'].map(coord)
 
+# jedno albo drugie
 test = test.drop_duplicates().reset_index(drop=True)
+# test = test.drop(columns=['names.xml:lang', 'names.value']).drop_duplicates().reset_index(drop=True)
 
 test['coordinates.value'] = test['coordinates.value'].apply(lambda x: Point(tuple([float(e) for e in re.findall('[\d\.-]+', x)][::-1])) if pd.notnull(x) else np.nan)
+
+test = test.sort_values(['place.value', 'starttime.value'])
+
+ttt = dict(tuple(test.groupby('place.value')))
+ttt = {k:v.dropna(how='all', axis=1).to_dict(orient='records') for k,v in ttt.items()}
+ttt = {k:[{key:value for key,value in e.items() if pd.notnull(value)} for e in v] for k,v in ttt.items()}
+
+for key,value in ttt.items():
+    # key = 'http://www.wikidata.org/entity/Q1792'
+    # key = 'http://www.wikidata.org/entity/Q1001225'
+    # value = ttt[key]
+    # print(key)
+    place_dict = {}
+    place_dict['place_names'] = []
+    for i, loc in enumerate(value):
+        # print(i)
+        # i = 0
+        # loc = value[i]
+        try:
+            if any(ke for ke,va in loc.items() if loc['placeLabel.value'] == loc['officialName.value']):
+                place = {ke: va for ke, va in loc.items() if ke != 'placeLabel.value'}
+            else:
+                place = loc.copy()
+        except KeyError:
+            place = loc.copy()
+        for k, v in place.items():
+            if k in ['place.value', 'geonamesID.value', 'coordinates.value'] and k not in place_dict:
+                place_dict[k] = v
+            else:
+                if k not in ['place.value', 'geonamesID.value', 'coordinates.value']:
+                    try: 
+                        place_dict['place_names'][i].update({k:v})
+                    except IndexError:
+                        place_dict['place_names'].append({k:v})         
+    ttt[key] = place_dict
+
+
+
+
+
+
+
+
+
+
+
+
 
 #send places to places db
 create_db('import.db', [test[['placeLabel.value', 'place.value', 'countryLabel.value', 'country.value', 'geonamesID.value']]], ['places'])
 
 for i, dictionary in enumerate(people_list_of_dicts):
     # i = 375
-    # i = 154
+    # i = 15
     # dictionary = people_list_of_dicts[i]
     try:
         birth = dictionary['wikidata_ID.birthplace.value']
@@ -173,7 +247,7 @@ for i, osoba in enumerate(people_list_of_dicts):
                 # place = dictionary['place_name'][0]
                 if 'placeLabel.value' in place and 'officialName.value' in place:
                     dictionary_1 = {key: value for key, value in place.items() if key != 'placeLabel.value'}
-                    dictionary_2 = {key: value for key, value in place.items() if key not in ['officialName.value', 'startime.value', 'endtime.value']}
+                    dictionary_2 = {key: value for key, value in place.items() if key not in ['officialName.value', 'officialName.xml:lang', 'startime.value', 'endtime.value']}
                     people_list_of_dicts[i]['wikidata_ID.birthplace.value'][ind]['place_name'] = [dictionary_1, dictionary_2]
     except KeyError:
         pass
@@ -182,7 +256,7 @@ for i, osoba in enumerate(people_list_of_dicts):
              for index, place in enumerate(dictionary['place_name']):
                 if 'placeLabel.value' in place and 'officialName.value' in place:
                     dictionary_1 = {key: value for key, value in place.items() if key != 'placeLabel.value'}
-                    dictionary_2 = {key: value for key, value in place.items() if key not in ['officialName.value', 'startime.value', 'endtime.value']}
+                    dictionary_2 = {key: value for key, value in place.items() if key not in ['officialName.value', 'officialName.xml:lang', 'startime.value', 'endtime.value']}
                     people_list_of_dicts[i]['wikidata_ID.deathplace.value'][ind]['place_name'] = [dictionary_1, dictionary_2]
     except KeyError:
         pass

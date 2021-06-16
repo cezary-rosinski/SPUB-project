@@ -61,8 +61,11 @@ def query_wikidata_for_country(place_url):
         try:
             place_id = re.findall('Q\d+', place_url)[-1]
             sparql_query = f"""PREFIX wdt: <http://www.wikidata.org/prop/direct/>
-                        SELECT distinct ?placeLabel ?country ?countryLabel ?officialName ?starttime ?endtime ?coordinates ?geonamesID WHERE {{
-                          wd:{place_id} rdfs:label ?placeLabel .
+                        SELECT distinct ?placeLabel ?country ?countryLabel ?officialName ?starttime ?endtime ?coordinates ?geonamesID ?names WHERE {{
+                          wd:{place_id} rdfs:label ?placeLabel 
+                          filter(lang(?placeLabel) = 'pl' || lang(?placeLabel) = 'en') .
+                          optional {{ wd:{place_id} skos:altLabel ?names 
+                          filter(lang(?names) = 'pl') . }}
                           optional {{ wd:{place_id} wdt:P17 ?country . }}
                           optional {{ wd:{place_id} wdt:P625 ?coordinates . }}
                           optional {{ wd:{place_id} wdt:P1566 ?geonamesID . }}
@@ -76,7 +79,7 @@ def query_wikidata_for_country(place_url):
             results = results.json()     
             results_df = pd.json_normalize(results['results']['bindings']) 
             results_df = get_language_from_wikidata(results_df)
-            columns = [e for e in results_df.columns.tolist() if 'value' in e]
+            columns = [e for e in results_df.columns.tolist() if 'value' in e or 'xml:lang' in e]
             results_df = results_df[results_df.columns.intersection(columns)].drop_duplicates().reset_index(drop=True)
             results_df['place.value'] = place_url 
             result = results_df.to_dict('records')

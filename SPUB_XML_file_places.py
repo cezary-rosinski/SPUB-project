@@ -8,13 +8,13 @@ from collections import Counter
 
 
 
+for k, v in ttt.items():
+    for e in v['place_names']:
+        if e['placeLabel.value'] == 'Gdańsk':
+            print(k)
+            break
 
-for i, e in enumerate(places_from_people_wikidata):
-    for ind, sub in enumerate(e):
-        if 'Stambuł' in sub['placeLabel.value']:
-            print((i, ind))
-#78, 62, 154, 3, 121
-test_place = ttt['http://www.wikidata.org/entity/Q1156']
+test_place = ttt['http://www.wikidata.org/entity/Q1792']
 
 def create_node_structure(xml_nodes_names):
     xml_nodes = {}

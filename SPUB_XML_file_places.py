@@ -10,9 +10,12 @@ from collections import Counter
 
 for k, v in ttt.items():
     for e in v['place_names']:
-        if e['placeLabel.value'] == 'Gdańsk':
-            print(k)
-            break
+        try:
+            if e['placeLabel.value'] == 'Gdańsk':
+                print(k)
+                break
+        except KeyError:
+            pass
 
 test_place = ttt['http://www.wikidata.org/entity/Q1792']
 

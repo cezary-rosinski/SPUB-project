@@ -12,6 +12,19 @@ import regex as re
 import xml.etree.cElementTree as ET
 import lxml.etree
 
+#%% def
+
+def def_period(x):
+    try:
+        start = re.findall('.+(?=T)', x['starttime.value'])[0] if pd.notnull(x['starttime.value']) else ''
+    except IndexError:
+        start = ''
+    try:
+        end = re.findall('.+(?=T)', x['endtime.value'])[0] if pd.notnull(x['endtime.value']) else ''
+    except IndexError:
+        end = ''
+    return f"{start}|{end}"
+
 #%% main
 #read data
 
@@ -113,25 +126,28 @@ test = test.drop_duplicates().reset_index(drop=True)
 coord = test.groupby('place.value')['coordinates.value'].max()
 test['coordinates.value'] = test['place.value'].map(coord)
 
-# jedno albo drugie
-test = test.drop_duplicates().reset_index(drop=True)
-# test = test.drop(columns=['names.xml:lang', 'names.value']).drop_duplicates().reset_index(drop=True)
+# jedno albo drugie | z dodatkowymi nazwami po polsku lub nie
+# test = test.drop_duplicates().reset_index(drop=True)
+test = test.drop(columns=['names.xml:lang', 'names.value']).drop_duplicates().reset_index(drop=True)
 
 test['coordinates.value'] = test['coordinates.value'].apply(lambda x: Point(tuple([float(e) for e in re.findall('[\d\.-]+', x)][::-1])) if pd.notnull(x) else np.nan)
 
 test = test.sort_values(['place.value', 'starttime.value'])
 
 ttt = dict(tuple(test.groupby('place.value')))
-ttt = {k:v.dropna(how='all', axis=1).to_dict(orient='records') for k,v in ttt.items()}
-ttt = {k:[{key:value for key,value in e.items() if pd.notnull(value)} for e in v] for k,v in ttt.items()}
+ttt = {k:v.to_dict(orient='records') for k,v in ttt.items()}
+# ttt = {k:v.dropna(how='all', axis=1).to_dict(orient='records') for k,v in ttt.items()}
+# ttt = {k:[{key:value for key,value in e.items() if pd.notnull(value)} for e in v] for k,v in ttt.items()}
 
 for key,value in ttt.items():
     # key = 'http://www.wikidata.org/entity/Q1792'
-    # key = 'http://www.wikidata.org/entity/Q1001225'
+    # key = 'http://www.wikidata.org/entity/Q585'
+    # key = 'http://www.wikidata.org/entity/Q1156'
     # value = ttt[key]
     # print(key)
     place_dict = {}
-    place_dict['place_names'] = []
+    place_dict['place_dates'] = {}
+    # place_dict['place_names'] = []
     for i, loc in enumerate(value):
         # print(i)
         # i = 0
@@ -143,17 +159,23 @@ for key,value in ttt.items():
                 place = loc.copy()
         except KeyError:
             place = loc.copy()
+            
+        period = def_period(place)
+        if period not in place_dict['place_dates']:    
+            place_dict['place_dates'].update({period:[{}]})
+        else:
+            place_dict['place_dates'][period].append({})
         for k, v in place.items():
-            if k in ['place.value', 'geonamesID.value', 'coordinates.value'] and k not in place_dict:
-                place_dict[k] = v
-            else:
-                if k not in ['place.value', 'geonamesID.value', 'coordinates.value']:
-                    try: 
-                        place_dict['place_names'][i].update({k:v})
-                    except IndexError:
-                        place_dict['place_names'].append({k:v})         
+            if pd.notnull(v):
+                if k in ['place.value', 'geonamesID.value', 'coordinates.value'] and k not in place_dict:
+                    place_dict[k] = v
+                elif k not in ['starttime.value', 'endtime.value', 'place.value', 'geonamesID.value', 'coordinates.value']:
+                    place_dict['place_dates'][period][-1][k] = v
+                    # try: 
+                    #     place_dict['place_dates'][period][-1][k] = v
+                    # except IndexError:
+                    #     place_dict['place_dates'][period][-1].update({k:v})         
     ttt[key] = place_dict
-
 
 
 

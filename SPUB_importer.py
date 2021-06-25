@@ -152,20 +152,22 @@ for key,value in ttt.items():
         # print(i)
         # i = 0
         # loc = value[i]
-        try:
-            if any(ke for ke,va in loc.items() if loc['placeLabel.value'] == loc['officialName.value']):
-                place = {ke: va for ke, va in loc.items() if ke != 'placeLabel.value'}
-            else:
-                place = loc.copy()
-        except KeyError:
-            place = loc.copy()
+        # try:
+        #     if any(ke for ke,va in loc.items() if loc['placeLabel.value'] == loc['officialName.value']):
+        #         place = {ke: va for ke, va in loc.items() if ke != 'placeLabel.value'}
+        #     else:
+        #         place = loc.copy()
+        # except KeyError:
+        #     place = loc.copy()
             
-        period = def_period(place)
+        # period = def_period(place)
+        period = def_period(loc)
         if period not in place_dict['place_dates']:    
             place_dict['place_dates'].update({period:[{}]})
         else:
             place_dict['place_dates'][period].append({})
-        for k, v in place.items():
+        # for k, v in place.items():    
+        for k, v in loc.items():
             if pd.notnull(v):
                 if k in ['place.value', 'geonamesID.value', 'coordinates.value'] and k not in place_dict:
                     place_dict[k] = v

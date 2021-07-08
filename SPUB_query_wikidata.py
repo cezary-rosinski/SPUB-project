@@ -60,20 +60,25 @@ def query_wikidata_for_country(place_url):
     while True:
         try:
             place_id = re.findall('Q\d+', place_url)[-1]
+            # place_id = 'Q406'
             sparql_query = f"""PREFIX wdt: <http://www.wikidata.org/prop/direct/>
-                        SELECT distinct ?placeLabel ?country ?countryLabel ?officialName ?starttime ?endtime ?coordinates ?geonamesID ?names WHERE {{
+                        SELECT distinct ?placeLabel ?country ?countryLabel ?countryStarttime ?countryEndtime ?officialName ?officialNameStarttime ?officialNameEndtime ?coordinates ?geonamesID ?names WHERE {{
                           wd:{place_id} rdfs:label ?placeLabel 
                           filter(lang(?placeLabel) = 'pl' || lang(?placeLabel) = 'en') .
                           optional {{ wd:{place_id} skos:altLabel ?names 
                           filter(lang(?names) = 'pl') . }}
-                          optional {{ wd:{place_id} wdt:P17 ?country . }}
+                          optional {{ wd:{place_id} p:P17 ?countryStatement . }}
+                          bind(coalesce(?countryStatement,"brak danych" ^^xsd:string) as ?countryTest)
+                          optional {{ ?countryTest ps:P17 ?country . }}
+                          optional {{ ?countryTest pq:P580 ?countryStarttime . }}
+                          optional {{ ?countryTest pq:P582 ?countryEndtime . }}
                           optional {{ wd:{place_id} wdt:P625 ?coordinates . }}
                           optional {{ wd:{place_id} wdt:P1566 ?geonamesID . }}
                           optional {{ wd:{place_id} p:P1448 ?statement . }}
                           bind(coalesce(?statement,"brak danych" ^^xsd:string) as ?test)
                           optional {{ ?test ps:P1448 ?officialName . }}
-                          optional {{ ?test pq:P580 ?starttime . }}
-                          optional {{ ?test pq:P582 ?endtime . }}
+                          optional {{ ?test pq:P580 ?officialNameStarttime . }}
+                          optional {{ ?test pq:P582 ?officialNameEndtime . }}
                           SERVICE wikibase:label {{ bd:serviceParam wikibase:language "pl". }}}}"""
             results = requests.get(url, params = {'format': 'json', 'query': sparql_query})
             results = results.json()     
@@ -94,7 +99,7 @@ def query_wikidata_for_country(place_url):
             time.sleep(2)
             pass
         
-             
+# results_df.to_excel('dane_wejsciowe_konstantynopol.xlsx', index=False)             
                 
                 
                 

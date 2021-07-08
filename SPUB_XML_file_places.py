@@ -8,16 +8,16 @@ from collections import Counter
 
 
 
-for k, v in ttt.items():
-    for e in v['place_names']:
-        try:
-            if e['placeLabel.value'] == 'Gdańsk':
-                print(k)
-                break
-        except KeyError:
-            pass
+# for k, v in ttt.items():
+#     for e in v['place_names']:
+#         try:
+#             if e['placeLabel.value'] == 'Gdańsk':
+#                 print(k)
+#                 break
+#         except KeyError:
+#             pass
 
-test_place = ttt['http://www.wikidata.org/entity/Q1792']
+# test_place = ttt['http://www.wikidata.org/entity/Q1792']
 
 def create_node_structure(xml_nodes_names):
     xml_nodes = {}
@@ -30,7 +30,6 @@ def create_node_structure(xml_nodes_names):
             xml_nodes[name] = subelement
     return xml_nodes
 
-#dodać atrybuty językowe
 
 place_dict = {'coordinates.value':'lat_lon',
               # 'countryLabel.value':'country',
@@ -81,9 +80,9 @@ def create_place(parent, dict_data):
             pl_country.text = element[-1]
                     
     
-xml_nodes = create_node_structure(['pbl', 'files', 'places'])
-create_place(xml_nodes['places'], test_place)   
-tree = ET.ElementTree(xml_nodes['pbl'])
+# xml_nodes = create_node_structure(['pbl', 'files', 'places'])
+# create_place(xml_nodes['places'], test_place)   
+# tree = ET.ElementTree(xml_nodes['pbl'])
 
 # [elem.tag for elem in xml_nodes['pbl'].iter()]
 
@@ -110,27 +109,6 @@ tree.write('test.xml', encoding='UTF-8')
 
 
 
-
-
-xml_nodes = create_node_structure(['pbl', 'files', 'people'])
-xml_nodes['person'] = create_person(xml_nodes['people'], osoba)
-xml_nodes['names'] = ET.SubElement(xml_nodes['person'], "names")          
-create_name(xml_nodes['names'], osoba)   
-xml_nodes['birth'] = ET.SubElement(xml_nodes['person'], "birth")       
-create_birth_death_date(xml_nodes['birth'], osoba)
-create_place(xml_nodes['birth'], osoba)
-xml_nodes['death'] = ET.SubElement(xml_nodes['person'], "death")     
-create_birth_death_date(xml_nodes['death'], osoba, kind='death')
-create_place(xml_nodes['death'], osoba, kind='death')
-create_remark(xml_nodes['person'], osoba)
-create_tags(xml_nodes['person'], osoba)
-create_links(xml_nodes['person'], osoba)
-
-tree = ET.ElementTree(xml_nodes['pbl'])
-
-# [elem.tag for elem in xml_nodes['pbl'].iter()]
-
-tree.write('test.xml', encoding='UTF-8')
 
 
 

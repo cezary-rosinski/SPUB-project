@@ -11,6 +11,7 @@ import numpy as np
 import regex as re
 import xml.etree.cElementTree as ET
 import lxml.etree
+from flexidate import parse
 
 #%% def
 
@@ -72,8 +73,32 @@ places_from_people_wikidata = []
 for i, place in tqdm(enumerate(places_from_people), total=len(places_from_people)):
     places_from_people_wikidata.append(query_wikidata_for_country(place))
     
+def grab_language(identifier, langs=['pl', 'en', 'fr', 'es', 'it']):
+    url = 'https://query.wikidata.org/sparql'
+    sparql_query = f"""PREFIX wdt: <http://www.wikidata.org/prop/direct/>
+                            SELECT distinct ?placeLabel WHERE {{
+                              wd:{identifier} rdfs:label ?placeLabel 
+                              SERVICE wikibase:label {{ bd:serviceParam wikibase:language "pl". }}}}"""
+    results = requests.get(url, params = {'format': 'json', 'query': sparql_query})
+    time.sleep(2)
+    results = results.json()['results']['bindings']
+    for el in results:
+        for lang in langs:
+            if el['placeLabel']['xml:lang'] == lang:
+                return (el['placeLabel']['value'],el['placeLabel']['xml:lang'])
+                break
+
+for i, el in tqdm(enumerate(places_from_people_wikidata), total=len(places_from_people_wikidata)):
+    for ind, ele in enumerate(el):
+        try:
+            if re.findall('^Q\d+', ele['countryLabel.value']):
+                places_from_people_wikidata[i][ind]['countryLabel.value'], places_from_people_wikidata[i][ind]['countryLabel.xml:lang'] = grab_language(ele['countryLabel.value'])
+        except KeyError:
+            pass
+
 with open('places_wikidata.json', 'w', encoding='utf-8') as f:
-    json.dump(places_from_people_wikidata, f)
+    json.dump(places_from_people_wikidata, f)        
+                      
 
 #main
 
@@ -87,8 +112,8 @@ test = [e for sub in places_from_people_wikidata for e in sub]
 test = pd.concat([pd.json_normalize(e) for e in test]).reset_index(drop=True)
 
 def names_if_dates(x):
-    a = x['starttime.value']
-    b = x['endtime.value']
+    a = x['officialNameStarttime.value']
+    b = x['officialNameEndtime.value']
     c = x['officialName.value']
     if any(pd.notnull(e) for e in [a, b]):
         return c
@@ -96,8 +121,8 @@ def names_if_dates(x):
         return np.nan
     
 def langs_if_dates(x):
-    a = x['starttime.value']
-    b = x['endtime.value']
+    a = x['officialNameStarttime.value']
+    b = x['officialNameEndtime.value']
     c = x['officialName.xml:lang']
     if any(pd.notnull(e) for e in [a, b]):
         return c
@@ -132,18 +157,25 @@ test = test.drop(columns=['names.xml:lang', 'names.value']).drop_duplicates().re
 
 test['coordinates.value'] = test['coordinates.value'].apply(lambda x: Point(tuple([float(e) for e in re.findall('[\d\.-]+', x)][::-1])) if pd.notnull(x) else np.nan)
 
-test = test.sort_values(['place.value', 'starttime.value'])
+test = test.sort_values(['place.value', 'countryStarttime.value', 'officialNameStarttime.value'])
+test.to_excel('kartoteka_miejsc_próbka.xlsx', index=False)
 
-ttt = dict(tuple(test.groupby('place.value')))
-ttt = {k:v.to_dict(orient='records') for k,v in ttt.items()}
+#send places to places db
+create_db('import.db', [test[['placeLabel.value', 'place.value', 'countryLabel.value', 'country.value', 'geonamesID.value']]], ['places'])
+
+import_places = dict(tuple(test.groupby('place.value')))
+import_places = {k:v.to_dict(orient='records') for k,v in import_places.items()}
 # ttt = {k:v.dropna(how='all', axis=1).to_dict(orient='records') for k,v in ttt.items()}
 # ttt = {k:[{key:value for key,value in e.items() if pd.notnull(value)} for e in v] for k,v in ttt.items()}
 
-for key,value in ttt.items():
+#ogarnąć periody na nowo - jak pogodzić periody nazw miejsc i nazw państw???
+
+for key,value in import_places.items():
     # key = 'http://www.wikidata.org/entity/Q1792'
     # key = 'http://www.wikidata.org/entity/Q585'
     # key = 'http://www.wikidata.org/entity/Q1156'
-    # value = ttt[key]
+    # key = 'http://www.wikidata.org/entity/Q406'
+    # value = import_places[key]
     # print(key)
     place_dict = {}
     place_dict['place_dates'] = {}
@@ -152,15 +184,7 @@ for key,value in ttt.items():
         # print(i)
         # i = 0
         # loc = value[i]
-        # try:
-        #     if any(ke for ke,va in loc.items() if loc['placeLabel.value'] == loc['officialName.value']):
-        #         place = {ke: va for ke, va in loc.items() if ke != 'placeLabel.value'}
-        #     else:
-        #         place = loc.copy()
-        # except KeyError:
-        #     place = loc.copy()
-            
-        # period = def_period(place)
+       
         period = def_period(loc)
         if period not in place_dict['place_dates']:    
             place_dict['place_dates'].update({period:[{}]})
@@ -177,7 +201,13 @@ for key,value in ttt.items():
                     #     place_dict['place_dates'][period][-1][k] = v
                     # except IndexError:
                     #     place_dict['place_dates'][period][-1].update({k:v})         
-    ttt[key] = place_dict
+    import_places[key] = place_dict
+
+xml_nodes = create_node_structure(['pbl', 'files', 'places'])  
+for k, v in import_places.items():
+    create_place(xml_nodes['places'], v)   
+tree = ET.ElementTree(xml_nodes['pbl'])
+tree.write('import_places.xml', encoding='UTF-8')
 
 
 
@@ -190,8 +220,10 @@ for key,value in ttt.items():
 
 
 
-#send places to places db
-create_db('import.db', [test[['placeLabel.value', 'place.value', 'countryLabel.value', 'country.value', 'geonamesID.value']]], ['places'])
+
+
+
+
 
 for i, dictionary in enumerate(people_list_of_dicts):
     # i = 375

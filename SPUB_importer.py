@@ -1,8 +1,13 @@
+# jeśli osoba nie ma dat - najnowszy period
+# jeśli osoba ma datę, ale periodu nie ma - najnowszy period
+# mogą być dwie daty urodzin lub śmierci - wziąć ostatnią
+
 from SPUB_importer_read_data import read_MARC21, get_list_of_people, get_list_of_records
 from SPUB_importer_query_national_library import query_national_library
 from SPUB_query_wikidata import query_wikidata, query_wikidata_for_country
 from SPUB_stack_in_db import create_db
-from SPUB_XML_file_people import create_node_structure, create_person, create_name, create_birth_death_date, create_place, create_remark, create_tags, create_links
+from SPUB_XML_file_people import create_node_structure, create_person, create_name, create_birth_death_date, create_place, create_remark, create_tags, create_links, create_sex, create_annotation
+from SPUB_XML_file_places import create_xml_places_from_gsheet
 import pandas as pd
 from tqdm import tqdm
 import json
@@ -12,6 +17,7 @@ import regex as re
 import xml.etree.cElementTree as ET
 import lxml.etree
 from flexidate import parse
+from datetime import datetime, timedelta, date
 
 #%% def
 
@@ -341,16 +347,122 @@ tree.write('import_people.xml', encoding='UTF-8')
 
 
 
+#02.08.2021
+# kartoteka miejsc
+xml_nodes = create_node_structure(['pbl', 'files', 'places'])
+list_of_places = create_xml_places_from_gsheet('1Ruu8fa-wzZ2fwj86S4UhWn_J3_xREjaw_B-P_B7OOvs', 'out', xml_nodes['places'])
+tree = ET.ElementTree(xml_nodes['pbl'])
+tree.write('import_places.xml', encoding='UTF-8')
 
 
+# kartoteka osób
+with open('import_people.json') as json_file:
+    people_list_of_dicts = json.load(json_file)
+    
+def handle_dates(v, i):
+    try:
+        return [datetime.strptime(v[i], '%Y-%m-%d').date() if v[i] != '' else date(1500, 1, 1) if i == 0 else datetime.now().date() for i, val in enumerate(v)]
+    except ValueError:
+        pass
+        
 
+for ind, dictionary in enumerate(people_list_of_dicts):
+    # i = 375
+    # i = 0
+    # i = 269
+    # dictionary = people_list_of_dicts[i]
+    try:
+        birth = dictionary['wikidata_ID.birthplace.value']
+        place_id = [e for e in list_of_places if e['id'] == birth.split('❦')[0]][0]
+        periods = {k:k.split('❦') for k in place_id['period'].keys()}
+        periods = {k:handle_dates(v, i) for k,v in periods.items()}
+        try:
+            birth_date = datetime.strptime(dictionary['wikidata_ID.birthdate.value'].split('❦')[0], '%Y-%m-%dT%H:%M:%SZ').date()
+            periods = {k:v for k,v in periods.items() if v is not None and v[0] <= birth_date <= v[1]}
+        except KeyError:
+            max_date = max(periods.items(), key=lambda x: x[-1])
+            periods = {}
+            periods[max_date[0]] = max_date[-1]
+        birth_place = {'id': place_id['id'], 'period': list({k for k,v in periods.items()})[0], 'lang': place_id['period'][list({k for k,v in periods.items()})[0]]['place name lang']}
+        people_list_of_dicts[ind]['wikidata_ID.birthplace.value'] = birth_place
+    except KeyError:
+        pass
 
+    try:
+        death = dictionary['wikidata_ID.deathplace.value']
+        place_id = [e for e in list_of_places if e['id'] == death.split('❦')[0]][0]
+        periods = {k:k.split('❦') for k in place_id['period'].keys()}
+        periods = {k:handle_dates(v, i) for k,v in periods.items()}
+        try:
+            death_date = datetime.strptime(dictionary['wikidata_ID.deathdate.value'].split('❦')[0], '%Y-%m-%dT%H:%M:%SZ').date()
+            periods = {k:v for k,v in periods.items() if v is not None and v[0] <= death_date <= v[1]}
+        except KeyError:
+            max_date = max(periods.items(), key=lambda x: x[-1])
+            periods = {}
+            periods[max_date[0]] = max_date[-1]
+        death_place = {'id': place_id['id'], 'period': list({k for k,v in periods.items()})[0], 'lang': place_id['period'][list({k for k,v in periods.items()})[0]]['place name lang']}
+        people_list_of_dicts[ind]['wikidata_ID.deathplace.value'] = death_place
+    except KeyError:
+        pass
 
+    
+with open('baza_marlena_biogramy_viaf.json', encoding='utf8') as json_file:
+    osoby_slownik = json.load(json_file) 
+    
+for key,value in osoby_slownik.items(): 
+    try:
+        proper_viaf = max(value['viafs'], key=lambda x: x['similarity'])
+        osoby_slownik[key]['viafs'] = proper_viaf
+    except (TypeError, ValueError):
+        pass
+    
 
+people_viafs = []
+for element in people_list_of_dicts:
+    try:
+        people_viafs.append(element['VIAF_ID'])
+    except KeyError:
+        pass
+    
+test = {}
+for k,v in osoby_slownik.items():
+    try:
+        if v['viafs']['viaf'] in people_viafs:
+            viaf = v['viafs']['viaf'] 
+            bio = v['Biogram']
+            test[viaf] = bio
+    except TypeError:
+        pass
+        
+for i, dictionary in enumerate(people_list_of_dicts):
+    try:
+        people_list_of_dicts[i]['bio'] = test[dictionary['VIAF_ID']]    
+    except KeyError:
+        pass
 
+                
+#create XML
 
+xml_nodes = create_node_structure(['pbl', 'files', 'people'])
+for osoba in tqdm(people_list_of_dicts):    
+    xml_nodes['person'] = create_person(xml_nodes['people'], osoba)
+    xml_nodes['names'] = ET.SubElement(xml_nodes['person'], "names")          
+    create_name(xml_nodes['names'], osoba)   
+    create_sex(xml_nodes['person'], osoba)
+    xml_nodes['birth'] = ET.SubElement(xml_nodes['person'], "birth")       
+    create_birth_death_date(xml_nodes['birth'], osoba)
+    create_place(xml_nodes['birth'], osoba)
+    xml_nodes['death'] = ET.SubElement(xml_nodes['person'], "death")     
+    create_birth_death_date(xml_nodes['death'], osoba, kind='death')
+    create_place(xml_nodes['death'], osoba, kind='death')
+    create_annotation(xml_nodes['person'], osoba)
+    create_remark(xml_nodes['person'], osoba)
+    create_tags(xml_nodes['person'], osoba)
+    create_links(xml_nodes['person'], osoba)
 
-
+    
+tree = ET.ElementTree(xml_nodes['pbl'])
+tree.write('import_people.xml', encoding='UTF-8')
 
 
 

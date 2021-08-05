@@ -2,15 +2,15 @@ import xml.etree.cElementTree as ET
 import lxml.etree
 from tqdm import tqdm
 import regex as re
-import datetime
+from datetime import datetime
 
 
     
 # for i, e in enumerate(people_list_of_dicts):
-#     if 'Mickiewicz' in e['name_simple']:
+#     if 'Jarzębski' in e['name_simple']:
 #         print(i)
 # #78, 62, 154, 3, 121
-# osoba = people_list_of_dicts[37]
+# osoba = people_list_of_dicts[65]
 
 person_name_types = ['main-name',
                      'family-name',
@@ -23,13 +23,12 @@ person_name_types = ['main-name',
 
 name_types_dict = {'wikidata_ID.pseudonym.value':'alias', 
                    'wikidata_ID.autorLabel.value':'main-name',  
-                   'wikidata_ID.sexLabel.value': 'sex', 
                    'wikidata_ID.aliasLabel.value': 'other-last-name-or-first-name',
                    'name_simple': 'main-name',
                    'wikidata_ID.birthNameLabel.value': 'family-name'
                    }
 def today():
-    now = datetime.datetime.now()
+    now = datetime.now()
     year = now.year
     month = '{:02}'.format(now.month)
     day = '{:02}'.format(now.day)
@@ -64,6 +63,8 @@ def create_person(parent, dict_data, status='published'):
     return person
         
 def create_name(parent, dict_data, transliteration='no'):
+    # parent = xml_nodes['names']
+    # dict_data = osoba
     try:
         for k,v in dict_data.items():
             if k in name_types_dict:
@@ -78,6 +79,18 @@ def create_name(parent, dict_data, transliteration='no'):
         name = ET.SubElement(parent, "name", transliteration=transliteration, code=name_types_dict['name_simple'])
         name.text = dict_data['name_simple']
 
+sex_dict = {'mężczyzna': 'male',
+            'kobieta': 'female'}
+        
+def create_sex(parent, dict_data):
+    sex = {}
+    for k,v in dict_data.items():
+        if k == 'wikidata_ID.sexLabel.value':
+            sex['value'] = sex_dict[v]
+            sex = ET.SubElement(parent, 'sex', sex)
+            
+            
+
 place_dict = {'coordinates.value':'lat_lon',
               'countryLabel.value':'country',
               'endtime.value':'date_to',
@@ -90,38 +103,44 @@ place_dict = {'coordinates.value':'lat_lon',
 def create_place(parent, dict_data, kind='birth'):
     try:
         # dict_data = people_list_of_dicts[3]
-        for element in dict_data[f'wikidata_ID.{kind}place.value']:
-            list_for_place = []
-            for k,v in element.items():
-                if k in ['coordinates.value', 'geonamesID.value', 'place.value']:
-                    list_for_place.append([place_dict[k], v])
-            empty_dict = {}
-            for name, value in list_for_place:
-                if name == 'lat_lon':
-                    empty_dict['lat'] = str(value['coordinates'][0])
-                    empty_dict['lon'] = str(value['coordinates'][1])
-                else:
-                    empty_dict[name] = value
-            place = ET.SubElement(parent, 'place', empty_dict)
-            list_for_place2 = []
-            for el in element['place_name']:
-                for k,v in el.items():
-                    try:
-                        if k in ['starttime.value', 'endtime.value']:
-                            try:
-                                v = re.findall('.+(?=T)', v)[0]
-                            except IndexError:
-                                pass
-                        list_for_place2.append([place_dict[k], v])
-                    except KeyError:
-                        pass
-                empty_dict2 = {}
-                for name, value in list_for_place2:
-                    empty_dict2[name] = value
-                place_name = ET.SubElement(place, 'name', empty_dict2)        
-        return place
+        place_data = dict_data[f'wikidata_ID.{kind}place.value']
+        place = ET.SubElement(parent, 'place', place_data)
     except KeyError:
         pass
+        
+        
+    #     for element in dict_data[f'wikidata_ID.{kind}place.value']:
+    #         list_for_place = []
+    #         for k,v in element.items():
+    #             if k in ['coordinates.value', 'geonamesID.value', 'place.value']:
+    #                 list_for_place.append([place_dict[k], v])
+    #         empty_dict = {}
+    #         for name, value in list_for_place:
+    #             if name == 'lat_lon':
+    #                 empty_dict['lat'] = str(value['coordinates'][0])
+    #                 empty_dict['lon'] = str(value['coordinates'][1])
+    #             else:
+    #                 empty_dict[name] = value
+    #         place = ET.SubElement(parent, 'place', empty_dict)
+    #         list_for_place2 = []
+    #         for el in element['place_name']:
+    #             for k,v in el.items():
+    #                 try:
+    #                     if k in ['starttime.value', 'endtime.value']:
+    #                         try:
+    #                             v = re.findall('.+(?=T)', v)[0]
+    #                         except IndexError:
+    #                             pass
+    #                     list_for_place2.append([place_dict[k], v])
+    #                 except KeyError:
+    #                     pass
+    #             empty_dict2 = {}
+    #             for name, value in list_for_place2:
+    #                 empty_dict2[name] = value
+    #             place_name = ET.SubElement(place, 'name', empty_dict2)        
+    #     return place
+    # except KeyError:
+    #     pass
               
 def create_birth_death_date(parent, dict_data, kind='birth', to='', to_bc='false', uncertain='false', in_words=''):
     try:
@@ -131,14 +150,19 @@ def create_birth_death_date(parent, dict_data, kind='birth', to='', to_bc='false
             empty_dict['from-bc'] = 'true'
         else:
             empty_dict['from-bc'] = 'false'
-        empty_dict['to-bc'], empty_dict['to'],empty_dict['uncertain'], empty_dict['in_words'] = to_bc, to, uncertain, in_words
+        empty_dict['to-bc'], empty_dict['to'],empty_dict['uncertain'], empty_dict['in-words'] = to_bc, to, uncertain, in_words
         date = ET.SubElement(parent, 'date', empty_dict)
         return date
     except KeyError:
         pass
 
 def create_annotation(parent, dict_data):
-    pass
+    try:
+        bio = dict_data['bio']
+        annotation = ET.SubElement(parent, 'annotation')
+        annotation.text = bio
+    except KeyError:
+        pass
 
 def create_remark(parent, dict_data):
     try:
@@ -181,19 +205,20 @@ def create_links(parent, dict_data, kind='external-identifier'):
 # tree = ET.ElementTree(date)
 # tree.write('test2.xml', encoding='UTF-8')       
         
-#     except KeyError:
 
 
 # xml_nodes = create_node_structure(['pbl', 'files', 'people'])
 # xml_nodes['person'] = create_person(xml_nodes['people'], osoba)
 # xml_nodes['names'] = ET.SubElement(xml_nodes['person'], "names")          
 # create_name(xml_nodes['names'], osoba)   
+# create_sex(xml_nodes['person'], osoba)
 # xml_nodes['birth'] = ET.SubElement(xml_nodes['person'], "birth")       
 # create_birth_death_date(xml_nodes['birth'], osoba)
 # create_place(xml_nodes['birth'], osoba)
 # xml_nodes['death'] = ET.SubElement(xml_nodes['person'], "death")     
 # create_birth_death_date(xml_nodes['death'], osoba, kind='death')
 # create_place(xml_nodes['death'], osoba, kind='death')
+# create_annotation(xml_nodes['person'], osoba)
 # create_remark(xml_nodes['person'], osoba)
 # create_tags(xml_nodes['person'], osoba)
 # create_links(xml_nodes['person'], osoba)

@@ -2,10 +2,12 @@ import xml.etree.cElementTree as ET
 import lxml.etree
 from tqdm import tqdm
 import regex as re
-import datetime
+from datetime import datetime
 from collections import Counter
-
-
+from my_functions import gsheet_to_df
+import ast
+import pandas as pd
+import numpy as np
 
 
 # for k, v in ttt.items():
@@ -31,17 +33,17 @@ def create_node_structure(xml_nodes_names):
     return xml_nodes
 
 
-place_dict = {'coordinates.value':'lat_lon',
-              # 'countryLabel.value':'country',
-              'endtime.value':'date-to',
-              'starttime.value':'date-from',
-              'place.value':'id',
-              # 'placeLabel.value':'name',
-              # 'officialName.value':'name',
-              'geonamesID.value':'geonames',
-              'officialName.xml:lang':'lang',
-              'countryLabel.xml:lang':'lang',
-              'placeLabel.xml:lang':'lang'}
+# place_dict = {'coordinates.value':'lat_lon',
+#               # 'countryLabel.value':'country',
+#               'endtime.value':'date-to',
+#               'starttime.value':'date-from',
+#               'place.value':'id',
+#               # 'placeLabel.value':'name',
+#               # 'officialName.value':'name',
+#               'geonamesID.value':'geonames',
+#               'officialName.xml:lang':'lang',
+#               'countryLabel.xml:lang':'lang',
+#               'placeLabel.xml:lang':'lang'}
 
 def create_place(parent, dict_data):
     # parent = xml_nodes['places']
@@ -79,6 +81,74 @@ def create_place(parent, dict_data):
             pl_country = ET.SubElement(period, 'country', {element[0]:element[1]})
             pl_country.text = element[-1]
                     
+
+
+place_dict = {'place name': 'name',
+              'place name lang': 'lang',
+              'country name': 'country',
+              'country name lang': 'lang'}
+
+    
+def create_xml_places_from_gsheet(gsheetID, worksheet, parent):    
+    df = gsheet_to_df(gsheetID, worksheet)
+    df['koordynaty'] = df['koordynaty'].apply(lambda x: ast.literal_eval(x) if pd.notnull(x) else np.nan)
+    df['lat'], df['lon'] = zip(*df['koordynaty'].apply(lambda x: x['coordinates'] if pd.notnull(x) else (np.nan, np.nan)))
+    # df = df.replace(np.nan, '', regex=True)
+    df['date-from'] = df['date-from'].apply(lambda x: re.sub('(.+)(T.*)', r'\1', x) if pd.notnull(x) else '')
+    df['date-to'] = df['date-to'].apply(lambda x: re.sub('(.+)(T.*)', r'\1', x) if pd.notnull(x) else '')
+    df['period'] = df[['date-from', 'date-to']].apply(lambda x: '❦'.join(x.astype(str)), axis=1)
+    df.drop(columns=['koordynaty', 'date-from', 'date-to'], inplace=True)
+    col_order = ['id', 'geonames', 'lat', 'lon', 'period', 'place name', 'place name lang', 'country name', 'country name lang']
+    df = df.reindex(columns=col_order)
+    df_grouped = df.groupby('id')
+    places_list = []
+    for name, group in df_grouped:
+        places_dict = {}
+        periods = []
+        for i, row in group.iterrows():
+            for index, value in row.items():
+                if pd.notnull(value):
+                    if index in ['id', 'geonames', 'lat', 'lon']:
+                        if index not in places_dict: 
+                            places_dict[index] = value
+                    elif index == 'period':
+                        periods.append(value)
+                        if index not in places_dict:
+                            places_dict[index] = {value:{}}
+                        else:
+                            places_dict[index].update({value:{}})
+                    else:
+                        places_dict['period'][periods[-1]][index] = value  
+        places_list.append(places_dict)
+        
+    for element in places_list:
+        geo_dict = {}
+        for key, value in element.items():
+            if key != 'period':
+                geo_dict[key] = str(value)
+        place = ET.SubElement(parent, 'place', geo_dict)
+        for ke, va in element['period'].items():
+            empty_dict2 = {}
+            empty_dict2['date-from'] = ke.split('❦')[0]
+            empty_dict2['date-to'] = ke.split('❦')[-1]
+            period = ET.SubElement(place, 'period', empty_dict2)
+            empty_dict3 = {}
+            empty_dict4 = {}
+            for k, v in va.items():
+                if k in ['place name', 'place name lang']:
+                    empty_dict3[place_dict[k]] = v
+                else:
+                    empty_dict4[place_dict[k]] = v
+            pl_name = ET.SubElement(period, 'name', {k:v for k,v in empty_dict3.items() if k == 'lang'})
+            pl_name.text = empty_dict3['name']
+            try:
+                pl_country = ET.SubElement(period, 'country', {k:v for k,v in empty_dict4.items() if k == 'lang'})
+                pl_country.text = empty_dict4['country']
+            except KeyError:
+                pass
+    return places_list
+                
+
     
 # xml_nodes = create_node_structure(['pbl', 'files', 'places'])
 # create_place(xml_nodes['places'], test_place)   
@@ -86,14 +156,14 @@ def create_place(parent, dict_data):
 
 # [elem.tag for elem in xml_nodes['pbl'].iter()]
 
-tree.write('test.xml', encoding='UTF-8')
+# tree.write('test.xml', encoding='UTF-8')
 
 
-xml_nodes = create_node_structure(['pbl', 'files', 'places'])  
-for k, v in ttt.items():
-    create_place(xml_nodes['places'], v)   
-tree = ET.ElementTree(xml_nodes['pbl'])
-tree.write('test.xml', encoding='UTF-8')
+# xml_nodes = create_node_structure(['pbl', 'files', 'places'])  
+# for k, v in ttt.items():
+#     create_place(xml_nodes['places'], v)   
+# tree = ET.ElementTree(xml_nodes['pbl'])
+# tree.write('test.xml', encoding='UTF-8')
     
     
 

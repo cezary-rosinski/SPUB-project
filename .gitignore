@@ -1,4 +1,5 @@
-﻿__pycache__/
+﻿/people_dict.pickle
+/__pycache__/
 /bn_harvested_2021_05_12.mrc
 /bn_harvested_2021_05_12.mrk
 /test.xml

@@ -30,7 +30,8 @@ def get_list_of_people(marc21_list, fields_tuple, regex_replace, top=0):
         for el in sublist:
             if el.startswith(fields_tuple):
                 el = re.sub(regex_replace, '', el[8:]).replace('$2DBN', '').strip()
-                list_of_people.append(el)
+                if len(el) > 3:
+                    list_of_people.append(el)
     if top>0:
         list_of_people = Counter(list_of_people).most_common(top)
         list_of_people = [e[0] for e in list_of_people]

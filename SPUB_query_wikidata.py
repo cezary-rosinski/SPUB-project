@@ -5,6 +5,41 @@ import time
 from urllib.error import HTTPError
 from http.client import RemoteDisconnected
 import regex as re
+from SPARQLWrapper import SPARQLWrapper, JSON
+from collections import defaultdict
+
+def wikidata_simple_dict_resp(results):
+    results = results['results']['bindings']
+    dd = defaultdict(list)
+    for d in results:
+        for key, value in d.items():
+            dd[key].append(value)
+    dd = {k:set([tuple(e.items()) for e in v]) for k,v in dd.items()}
+    dd = {k:list([dict((x,y) for x,y in e) for e in v]) for k,v in dd.items()}
+    return dd
+    
+def query_wikidata_person_with_viaf(viaf_id):
+    sparql = SPARQLWrapper("https://query.wikidata.org/sparql")
+    sparql.setQuery(f"""PREFIX wdt: <http://www.wikidata.org/prop/direct/>
+                SELECT distinct ?author ?authorLabel ?birthplaceLabel ?deathplaceLabel ?birthdate ?deathdate ?sexLabel ?pseudonym ?occupationLabel ?genreLabel ?birthNameLabel ?aliasLabel ?birthplace ?deathplace WHERE {{ 
+                  ?author wdt:P214 "{viaf_id}" ;
+                  optional {{ ?author wdt:P19 ?birthplace . }}
+                  optional {{ ?author wdt:P569 ?birthdate . }}
+                  optional {{ ?author wdt:P570 ?deathdate . }}
+                  optional {{ ?author wdt:P20 ?deathplace . }}
+                  optional {{ ?author wdt:P21 ?sex . }}
+                  optional {{ ?author wdt:P106 ?occupation . }}
+                  optional {{ ?author wdt:P742 ?pseudonym . }}
+                  optional {{ ?author wdt:P136 ?genre . }}
+                  optional {{ ?author rdfs:label ?alias . }}
+                  optional {{ ?author wdt:P1477 ?birthName . }}
+                SERVICE wikibase:label {{ bd:serviceParam wikibase:language "pl". }}}}""")
+    sparql.setReturnFormat(JSON)
+    results = sparql.query().convert()
+    results = wikidata_simple_dict_resp(results)
+    
+    return results
+    
 
 def query_wikidata(list_of_dicts):
     url = 'https://query.wikidata.org/sparql' 

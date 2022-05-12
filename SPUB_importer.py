@@ -2,11 +2,16 @@
 # jeśli osoba ma datę, ale periodu nie ma - najnowszy period
 # mogą być dwie daty urodzin lub śmierci - wziąć ostatnią
 
+# w pliku osobowym atrybut dla płci będzie "code" (teraz jest "value")
+
+
+# rozwiązanie w kartotece instytucji dla dat startu i końca obowiązywania nazwy
+# trzeba dodać atrybuty name='begin', name='end' i tag date trzeba powtórzyć
 from SPUB_importer_read_data import read_MARC21, get_list_of_people, get_list_of_records
-from SPUB_importer_query_national_library import query_national_library
-from SPUB_query_wikidata import query_wikidata, query_wikidata_for_country
+from SPUB_importer_query_national_library import return_people_dict_bn
+from SPUB_query_wikidata import query_wikidata, query_wikidata_for_country, query_wikidata_person_with_viaf
 from SPUB_stack_in_db import create_db
-from SPUB_XML_file_people import create_node_structure, create_person, create_name, create_birth_death_date, create_place, create_remark, create_tags, create_links, create_sex, create_annotation
+from SPUB_XML_file_people import create_person
 from SPUB_XML_file_places import create_xml_places_from_gsheet
 import pandas as pd
 from tqdm import tqdm
@@ -18,7 +23,21 @@ import xml.etree.cElementTree as ET
 import lxml.etree
 from flexidate import parse
 from datetime import datetime, timedelta, date
+from lxml.builder import E
+from lxml.etree import ElementTree
+import glob
+import io
+from my_functions import marc_parser_dict_for_field, gsheet_to_df
+from SPUB_XML_file_institutions import create_institution
+import time
+import pickle 
+from concurrent.futures import ThreadPoolExecutor
+import pymongo
 
+# wszystkie pliki XML zapisywać jako pretty print
+# KARTOTEKA MIEJSC – jeśli period jest pusty, to nie dodawać atrybutów date-from, date-to
+# KARTOTEKA OSÓB – jeśli miejsce odwołuje się do periodu, którego nie ma, to nie podajemy atrybutu period
+# KARTOTEKA OSÓB – jeśli mamy jedną datę, to hedera sygnalizuje, czy jest to data początkowa, czy końcowa
 #%% def
 
 def def_period(x):
@@ -32,25 +51,97 @@ def def_period(x):
         end = ''
     return f"{start}|{end}"
 
+def update_mongo_with_wikidata(mongo_record):
+    mongo_id = mongo_record['_id']
+    viaf_id = re.findall('\d+', mongo_record['VIAF_ID'])[0]
+    resp = query_wikidata_person_with_viaf(viaf_id)
+    mongo_record.update({'wikidata_result': resp})
+    newvalues = { "$set": mongo_record}
+    mycol.update_one({'_id': mongo_id}, newvalues)
+
 #%% main
 #read data
 
 marc21_records = read_MARC21('bn_harvested_2021_05_12.mrk')
 
-people_list = get_list_of_people(marc21_records, ('=100'), '(\$e|\$t).*', 200)
+# path = 'F:/Cezary/Documents/IBL/BN/bn_authorities/'
+# files = [file for file in glob.glob(path + '*.mrk', recursive=True)]
+# encoding = 'utf-8'
+# fields_368 = []
+# for file in tqdm(files):
+#     marc_list = io.open(file, 'rt', encoding = encoding).readlines()
+#     temp_list = [marc_parser_dict_for_field(e, '\$') for e in marc_list if e.startswith('=368')]
+#     temp_list = [[f['$a'] for f in e if '$a' in f] for e in temp_list]  
+#     temp_list = [e for sub in temp_list for e in sub if sub]
+#     fields_368.extend(temp_list)
+    
+# fields_368 = list(set(fields_368))
 
-bibliographical_records = get_list_of_records(marc21_records, people_list, ('=100'), '(\$e|\$t).*')
+# with open('typy_instytucji_BN.txt', 'a', encoding='utf-8') as file:
+#     for e in fields_368:
+#         file.write(e + '\n')
 
-people_list = get_list_of_people(bibliographical_records, ('=100', '=600', '=700'), '(\$x|\$4|\$e|\.\$t).*')
+
+# people_list = get_list_of_people(marc21_records, ('=100'), '(\$e|\$t).*', 200)
+
+# bibliographical_records = get_list_of_records(marc21_records, people_list, ('=100'), '(\$e|\$t).*')
+
+# people_list = get_list_of_people(bibliographical_records, ('=100', '=600', '=700'), '(\$x|\$4|\$e|\.\$t).*')
 
 #query national library
 
-people_list_of_dicts = query_national_library(people_list)
+#tu trzeba wprowadzić jakieś ograniczenia, np. po długości stringu
+people_list = get_list_of_people(marc21_records, ('=100', '=600', '=700'), '(\$x|\$4|\$e|\.\$t).*')
+
+people_list = [e for e in people_list if len(e) >= 10 or (' ' in e and e.count(' ') <= 2 and len(e) >= 9)]
+
+people_dict, bn_no_response = return_people_dict_bn(people_list)
+
+with open('people_dict.pickle', 'wb') as handle:
+    pickle.dump(people_dict, handle, protocol=pickle.HIGHEST_PROTOCOL)
+    
+with open('bn_no_response.pickle', 'wb') as handle:
+    pickle.dump(bn_no_response, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+with open('people_dict.pickle', 'rb') as handle:
+    people_dict = pickle.load(handle)
+
+client = pymongo.MongoClient()
+mydb = client['pbl-ibl-waw-pl_db']
+mycol = mydb['people']
+# mydb.drop_collection('people')
+mycol.insert_many([people_dict[e] for e in people_dict])
+
+#!!!TUTAJ!!! - odpytać wikidatę, bo dostałem bana
+mongo_len = len(list(mycol.find()))    
+with ThreadPoolExecutor() as executor:
+    list(tqdm(executor.map(update_mongo_with_wikidata,mycol.find()), total=mongo_len))
+
+
+mycol.find()[0]['VIAF_ID']
+
+
+
+
+
+
+
+print(client.list_database_names())
+
+for _ in mycol.find():
+    print(_)
+
+test = mycol.find()[0]
+for _ in mycol.find({"BN_result.marc.fields.100.subfields.a": "De Vita, Giulio"}):
+    print(_)
+# with open('NW_people.json', 'w', encoding='utf-8') as f:
+#     json.dump(people_list_of_dicts, f)
 
 #query wikidata
 # odpytać jeszcze raz, bo Sapkowski nie dostał wikidaty - czemu?
 
 people_list_of_dicts = query_wikidata(people_list_of_dicts)
+# people_list_of_dicts = people_list_of_dicts[:11]
 
 #send people to people db
 
@@ -110,6 +201,8 @@ with open('places_wikidata.json', 'w', encoding='utf-8') as f:
 
 with open('import_people.json') as json_file:
     people_list_of_dicts = json.load(json_file)
+    
+[e for e in people_list_of_dicts if 'BN_ID' in e and e['BN_ID'] == 'a0000002720404']
 
 with open('places_wikidata.json') as json_file:
     places_from_people_wikidata = json.load(json_file)
@@ -354,12 +447,16 @@ list_of_places = create_xml_places_from_gsheet('1Ruu8fa-wzZ2fwj86S4UhWn_J3_xREja
 tree = ET.ElementTree(xml_nodes['pbl'])
 tree.write('import_places.xml', encoding='UTF-8')
 
+# test = [e for e in places_from_people if e not in [a['id'] for a in list_of_places]]
 
 # kartoteka osób
-with open('import_people.json') as json_file:
+with open('import_people.json', encoding='utf-8') as json_file:
     people_list_of_dicts = json.load(json_file)
     
-def handle_dates(v, i):
+# test = [e for e in people_list_of_dicts if 'Riley' in e['name_simple']]
+# test = [e for e in people_list_of_dicts if 'wikidata_ID.deathplace.value' in e and 'http://www.wikidata.org/entity/Q4918'== e['wikidata_ID.deathplace.value']]
+    
+def handle_dates(v):
     try:
         return [datetime.strptime(v[i], '%Y-%m-%d').date() if v[i] != '' else date(1500, 1, 1) if i == 0 else datetime.now().date() for i, val in enumerate(v)]
     except ValueError:
@@ -369,13 +466,13 @@ def handle_dates(v, i):
 for ind, dictionary in enumerate(people_list_of_dicts):
     # i = 375
     # i = 0
-    # i = 269
-    # dictionary = people_list_of_dicts[i]
+    # ind = 73
+    # dictionary = people_list_of_dicts[ind]
     try:
         birth = dictionary['wikidata_ID.birthplace.value']
-        place_id = [e for e in list_of_places if e['id'] == birth.split('❦')[0]][0]
+        place_id = [e for e in list_of_places if e['id'] in birth.split('❦')][0]
         periods = {k:k.split('❦') for k in place_id['period'].keys()}
-        periods = {k:handle_dates(v, i) for k,v in periods.items()}
+        periods = {k:handle_dates(v) for k,v in periods.items()}
         try:
             birth_date = datetime.strptime(dictionary['wikidata_ID.birthdate.value'].split('❦')[0], '%Y-%m-%dT%H:%M:%SZ').date()
             periods = {k:v for k,v in periods.items() if v is not None and v[0] <= birth_date <= v[1]}
@@ -390,9 +487,9 @@ for ind, dictionary in enumerate(people_list_of_dicts):
 
     try:
         death = dictionary['wikidata_ID.deathplace.value']
-        place_id = [e for e in list_of_places if e['id'] == death.split('❦')[0]][0]
+        place_id = [e for e in list_of_places if e['id'] in death.split('❦')][0]
         periods = {k:k.split('❦') for k in place_id['period'].keys()}
-        periods = {k:handle_dates(v, i) for k,v in periods.items()}
+        periods = {k:handle_dates(v) for k,v in periods.items()}
         try:
             death_date = datetime.strptime(dictionary['wikidata_ID.deathdate.value'].split('❦')[0], '%Y-%m-%dT%H:%M:%SZ').date()
             periods = {k:v for k,v in periods.items() if v is not None and v[0] <= death_date <= v[1]}
@@ -406,7 +503,7 @@ for ind, dictionary in enumerate(people_list_of_dicts):
         pass
 
     
-with open('baza_marlena_biogramy_viaf.json', encoding='utf8') as json_file:
+with open('baza_marlena_biogramy_viaf.json', encoding='utf-8') as json_file:
     osoby_slownik = json.load(json_file) 
     
 for key,value in osoby_slownik.items(): 
@@ -443,183 +540,144 @@ for i, dictionary in enumerate(people_list_of_dicts):
                 
 #create XML
 
-xml_nodes = create_node_structure(['pbl', 'files', 'people'])
-for osoba in tqdm(people_list_of_dicts):    
-    xml_nodes['person'] = create_person(xml_nodes['people'], osoba)
-    xml_nodes['names'] = ET.SubElement(xml_nodes['person'], "names")          
-    create_name(xml_nodes['names'], osoba)   
-    create_sex(xml_nodes['person'], osoba)
-    xml_nodes['birth'] = ET.SubElement(xml_nodes['person'], "birth")       
-    create_birth_death_date(xml_nodes['birth'], osoba)
-    create_place(xml_nodes['birth'], osoba)
-    xml_nodes['death'] = ET.SubElement(xml_nodes['person'], "death")     
-    create_birth_death_date(xml_nodes['death'], osoba, kind='death')
-    create_place(xml_nodes['death'], osoba, kind='death')
-    create_annotation(xml_nodes['person'], osoba)
-    create_remark(xml_nodes['person'], osoba)
-    create_tags(xml_nodes['person'], osoba)
-    create_links(xml_nodes['person'], osoba)
-
-    
-tree = ET.ElementTree(xml_nodes['pbl'])
-tree.write('import_people.xml', encoding='UTF-8')
-
-
-
-
-
-
+people = E.people()
+for person in tqdm(people_list_of_dicts):
+    try:
+        people.append(create_person(person))
+    except KeyError:
+        pass
+import_people = E.pbl(E.files(people))
+to_save = ElementTree(import_people)
+to_save.write("import_people.xml", xml_declaration=True, encoding='utf-8')     
 
 
 #institutions
-    
-institutions_list = get_list_of_people(bibliographical_records, ('=110', '=610', '=710'), '(\$x|\$4|\$e|\.\$t).*')
+from my_functions import marc_parser_dict_for_field  
+import requests 
+
+df_places = gsheet_to_df('1Ruu8fa-wzZ2fwj86S4UhWn_J3_xREjaw_B-P_B7OOvs', 'out')
+
+institutions_list = get_list_of_people(bibliographical_records, ('=110', '=610', '=710', '=810'), '(\$x|\$4|\$e|\.\$t).*')
 #query national library
 
-institutions_list_of_dicts = query_national_library(institutions_list)
+institutions_list_of_dicts = query_national_library(institutions_list, kind='corporation')
 
-url = 'https://data.bn.org.pl/api/authorities.json?'
-list_of_dicts = []
-for i, person in tqdm(enumerate(list_of_people), total=len(list_of_people)):
-    person_dict = {}
-    person_dict['name_MARC21'] = person
-    person = marc_parser_dict_for_field(person, '\$')
-    person = ' '.join([v for k, v in person.items()])
-    person_dict['name_simple'] = person
-    params = {'name': person, 'limit':'100'}
-    result = requests.get(url, params = params).json()
-    authority = [e['marc']['fields'] for e in result['authorities'] if e['title'] == '']
-    authority = [[d for d in e if any(a in ['001', '024', '100'] for a in d)] for e in authority]
-    person2 = person.replace('?', '')
-    if len(authority) == 0:
-        person_dict['name_simple_no_question_mark'] = person2
-        params = {'name': person2, 'limit':'100'}
-        result = requests.get(url, params = params).json()
-        authority = [e['marc']['fields'] for e in result['authorities'] if e['title'] == '']
-        authority = [[d for d in e if any(a in ['001', '024', '100'] for a in d)] for e in authority]
-    for e in authority:
-        person_in_authority = [a['100']['subfields'] for a in e if '100' in a]
-        person_in_authority = [a for sub in person_in_authority for a in sub]
-        person_in_authority = [[v for k,v in a.items()] for a in person_in_authority]
-        person_in_authority = ' '.join([a for sub in person_in_authority for a in sub])
-        if person_in_authority == person or person_in_authority == person2:
-            for d in e:
-                if '001' in d:
-                    id = d['001']
-                    if 'BN_ID' in person_dict:
-                        person_dict['BN_ID'] = '❦'.join([id, person_dict['BN_ID']])
-                    else:
-                        person_dict['BN_ID'] = id
-                elif '024' in d:
-                    viaf = d['024']['subfields']
-                    for el in viaf:
-                        for di in el:
-                            if 'a' in di:
-                                viaf = re.findall('\d+', el['a'])[0]
-                                if 'VIAF_ID' in person_dict:
-                                    person_dict['VIAF_ID'] = '❦'.join([viaf, person_dict['VIAF_ID']])
-                                else:
-                                    person_dict['VIAF_ID'] = viaf
-                                        
-    person_dict = {k:'❦'.join(list(set(v.split('❦')))) for k,v in person_dict.items()}
-    list_of_dicts.append(person_dict)
+for i, e in tqdm(enumerate(institutions_list_of_dicts), total=len(institutions_list_of_dicts)):
+    # viaf_id = '132112363' #v['VIAF_ID'] 
+    try:
+        viaf_id = e['VIAF_ID']
+        result = requests.get(f'https://viaf.org/viaf/{viaf_id}/viaf.json').json()
+        try:
+            occupation = result['occupation']['data']['text']
+        except KeyError:
+            occupation = np.nan
+        try:
+            wikipedia_pl = [e['#text'] for e in result['xLinks']['xLink'] if isinstance(e, dict) and 'pl.wikipedia' in e['#text']][0]
+        except IndexError:
+            wikipedia_pl = np.nan
+        try:
+            wikidata_id = [e['@nsid'] for e in result['sources']['source'] if 'WKP' in e['#text']][0]
+        except TypeError:
+            try:
+                wikidata_id = {v for k,v in result['sources']['source'].items() if k=='@nsid' and 'WKP' in v}.pop()
+            except KeyError:
+                wikidata_id = np.nan
+        except IndexError:
+            wikidata_id = np.nan
+        temp_dict = {'viaf_id': viaf_id,
+                     'occupation': occupation,
+                     'wikipedia': wikipedia_pl}
+        temp_dict = {k:v for k,v in temp_dict.items() if pd.notnull(v)}
+        institutions_list_of_dicts[i]['VIAF_ID'] = temp_dict
+        if pd.notnull(wikidata_id):
+            result = requests.get(f'https://www.wikidata.org/wiki/Special:EntityData/{wikidata_id}.json').json()
+            try:
+                instance_of = [e['mainsnak']['datavalue']['value']['id'] for e in result['entities'][f'{wikidata_id}']['claims']['P31']]
+            except KeyError:
+                instance_of = np.nan
+            try:
+                inception = [e['mainsnak']['datavalue']['value']['time'] for e in result['entities'][f'{wikidata_id}']['claims']['P571']]
+            except KeyError:
+                inception = np.nan
+            try:
+                location = [e['mainsnak']['datavalue']['value']['id'] for e in result['entities'][f'{wikidata_id}']['claims']['P276']]
+            except KeyError:
+                location = np.nan
+            try:
+                coordinates = [(e['mainsnak']['datavalue']['value']['latitude'], e['mainsnak']['datavalue']['value']['longitude']) for e in result['entities'][f'{wikidata_id}']['claims']['P625']]
+            except KeyError:
+                coordinates = np.nan
+            try:
+                replaces = [e['mainsnak']['datavalue']['value']['id'] for e in result['entities'][f'{wikidata_id}']['claims']['P1365']]
+            except KeyError:
+                replaces = np.nan
+            wikidata_dict = {'wikidata_id': wikidata_id,
+                             'instance_of': instance_of,
+                             'inception': inception,
+                             'location': location,
+                             'replaces': replaces,
+                             'coordinates': coordinates}
+            wikidata_dict = {k:v for k,v in wikidata_dict.items() if not(isinstance(v, float))}
+            for ke,va in {k:v for k,v in wikidata_dict.items() if k not in ['wikidata_id', 'inception', 'coordinates']}.items():
+                for ind, el in enumerate(va):
+                    result = requests.get(f'https://www.wikidata.org/wiki/Special:EntityData/{el}.json').json()
+                    try:
+                        wikidata_dict[ke][ind] = {el: result['entities'][f'{el}']['labels']['pl']['value']}
+                    except KeyError:
+                        wikidata_dict[ke][ind] = {el: result['entities'][f'{el}']['labels']['en']['value']}
+            institutions_list_of_dicts[i].update({'wikidata_id': wikidata_dict})
+    except KeyError:
+        pass
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# przygotować testową listę rekordów bibliograficznych
-# 300 ksiażek z bn (jakie?)
-# wydobyć z nich osoby i związać z kartoteką wzorcową BN
-# połączyć dane z viaf i wikidatą oraz wydobyć dodatkowe informacje do schematu PBL
-import pandas as pd
-import io
-from google_drive_research_folders import PBL_folder
-from pydrive.auth import GoogleAuth
-from pydrive.drive import GoogleDrive
-import gspread as gs
-from my_functions import cSplit, df_to_mrc, mrk_to_df, mrc_to_mrk
-import datetime
-import regex as re
-from gspread_dataframe import get_as_dataframe, set_with_dataframe
-from tqdm import tqdm
-import glob
-import time
-import json
-from collections import Counter
 import requests
-from urllib.error import HTTPError
-from http.client import RemoteDisconnected
+result = requests.get('https://viaf.org/viaf/151912351/viaf.json').json()
+result['occupation']['data']['text'] #occupation
+[e['#text'] for e in result['xLinks']['xLink'] if isinstance(e, dict) and 'pl.wikipedia' in e['#text']] #wikipedia pl
+[e['@nsid'] for e in result['sources']['source'] if 'WKP' in e['#text']]# wikidata id
+
+result = requests.get('https://www.wikidata.org/wiki/Special:EntityData/Q856423.json').json()
+[e['mainsnak']['datavalue']['value']['id'] for e in result['entities']['Q856423']['claims']['P31']] #instance of
+[e['mainsnak']['datavalue']['value']['time'] for e in result['entities']['Q856423']['claims']['P571']] #inception
+[e['mainsnak']['datavalue']['value']['id'] for e in result['entities']['Q856423']['claims']['P276']] #location
+[e['mainsnak']['datavalue']['value']['id'] for e in result['entities']['Q856423']['claims']['P1365']] #replaces
+
+
+
+
+
+institutions = E.institution()
+for institution in tqdm(institutions_list_of_dicts):
+    try:
+        institutions.append(create_institution(institution))
+    except KeyError:
+        pass
+import_institutions = E.pbl(E.files(institutions))
+
+to_save = ElementTree(import_institutions)
+to_save.write("import_institutions.xml", xml_declaration=True, encoding='utf-8')   
 
 
 
 
 
 
-import xml.etree.cElementTree as ET
-
-def generate_XML(file):
-    pbl = ET.Element("pbl")
-    files = ET.SubElement(pbl, "files")
-    people = ET.SubElement(files, "people")
-    person = ET.SubElement(people, "person", id='id1', creator="c_rosinski").text = 'some text'
-
-    tree = ET.ElementTree(pbl)
-    tree.write(file)
-    
-generate_XML('test.xml')
 
 
-krasinski = osoby_z_rekordow_lista_slownikow[13]
 
-name_types_dict = {'pseudonym.value':'alias', 'autorLabel.value':'main-name'}
 
-krasinski['wikidata ID'][0].keys()
 
-tablica.get(krasinski['wikidata ID'][0]['pseudonym.value'])
 
-#tablica przekodowania między wikidatą a strukturą xml 
 
-def create_name(parent, data, field_name):
-    name = ET.SubElement(parent, "name", transliteration='no', code=name_types_dict.get(field_name)).text = data['wikidata ID'][0][field_name]
-    
 
-pbl = ET.Element("pbl")
-files = ET.SubElement(pbl, "files")
-people = ET.SubElement(files, "people")
-person = ET.SubElement(people, "person", id='id1', creator="c_rosinski")
-names = ET.SubElement(person, "names")
-# name = ET.SubElement(names, "name", transliteration='no', code=name_types_dict.get('autorLabel.value')).text = krasinski['wikidata ID'][0]['autorLabel.value']
-# name = ET.SubElement(names, "name", transliteration='no', code=name_types_dict.get('pseudonym.value')).text = krasinski['wikidata ID'][0]['pseudonym.value']
-# create_name(names, krasinski, 'autorLabel.value')
-# create_name(names, krasinski, 'pseudonym.value')
-for element in name_types_dict:
-    create_name(names, krasinski, element)
 
-tree = ET.ElementTree(pbl)
-tree.write('krasinski.xml', encoding='UTF-8', )
-    
-person = ET.SubElement(people, "person", id='id1', creator="c_rosinski").text = 'some text'    
-    
-    
-#18.05.2021 - zbudować mechanizm dla osób xml - zapisać pliki 
-# przygotować instytucje do kartoteki instytucji    
+
+
+
+
+
+
+
     
     
     
@@ -631,43 +689,7 @@ person = ET.SubElement(people, "person", id='id1', creator="c_rosinski").text = 
     
     
     
-    
-    
-    
-    
-    
-    
-                    
-# final_list = []
-# for lista in rekordy:
-#     slownik = {}
-#     for el in lista:
-#         if el[1:4] in slownik:
-#             slownik[el[1:4]] += f"❦{el[6:]}"
-#         else:
-#             slownik[el[1:4]] = el[6:]
-#     final_list.append(slownik)
-
-# df = pd.DataFrame(final_list).drop_duplicates().reset_index(drop=True)
-# fields = df.columns.tolist()
-# fields = [i for i in fields if 'LDR' in i or re.compile('\d{3}').findall(i)]
-# df = df.loc[:, df.columns.isin(fields)]
-# fields.sort(key = lambda x: ([str,int].index(type("a" if re.findall(r'\w+', x)[0].isalpha() else 1)), x))
-# df = df.reindex(columns=fields)   
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  
 
 
 

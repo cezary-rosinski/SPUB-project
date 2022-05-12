@@ -4,13 +4,23 @@ from tqdm import tqdm
 import regex as re
 from datetime import datetime
 
+from lxml.builder import E
+from lxml.etree import ElementTree, tostring
 
+from my_functions import gsheet_to_df
+
+import hashlib
+import random
     
 # for i, e in enumerate(people_list_of_dicts):
-#     if 'Jarzębski' in e['name_simple']:
+#     if 'Kapuściński' in e['name_simple']:
 #         print(i)
-# #78, 62, 154, 3, 121
-# osoba = people_list_of_dicts[65]
+#78, 62, 154, 3, 121
+# osoba = people_list_of_dicts[388]
+
+# [i for i, e in enumerate(people_list_of_dicts) if 'VIAF_ID' not in e][0]
+        
+dzialy_pbl = gsheet_to_df('14hkWimoH7iBit_yMAkxmEGGI8vQeZslPDHzslNVSzDQ', 'Nowa struktura działów')[['string uproszczony', 'MD5']].to_dict(orient='records')
 
 person_name_types = ['main-name',
                      'family-name',
@@ -27,207 +37,197 @@ name_types_dict = {'wikidata_ID.pseudonym.value':'alias',
                    'name_simple': 'main-name',
                    'wikidata_ID.birthNameLabel.value': 'family-name'
                    }
-def today():
-    now = datetime.now()
-    year = now.year
-    month = '{:02}'.format(now.month)
-    day = '{:02}'.format(now.day)
-    return f'{year}-{month}-{day}'
-
-def create_node_structure(xml_nodes_names):
-    xml_nodes = {}
-    for id, name in enumerate(xml_nodes_names):
-        if id == 0:
-            element = ET.Element(name)
-            xml_nodes[name] = element
-        else:
-            subelement = ET.SubElement(xml_nodes[xml_nodes_names[id-1]], name)
-            xml_nodes[name] = subelement
-    return xml_nodes
-
-def create_person(parent, dict_data, status='published'):
-    empty_dict = {}
-    # empty_dict['id'] = ?
-    try:
-        empty_dict['id'] = dict_data['BN_ID']
-    except KeyError:
-        empty_dict['id'] = dict_data['name_simple']
-    try:
-        empty_dict['viaf'] = dict_data['VIAF_ID']
-    except KeyError:
-        pass
-    empty_dict['status'] = status
-    empty_dict['creator'] = 'cezary_rosinski'
-    empty_dict['creation-date'] = empty_dict['publishing-date'] = today()
-    person = ET.SubElement(parent,'person', empty_dict)
-    return person
-        
-def create_name(parent, dict_data, transliteration='no'):
-    # parent = xml_nodes['names']
-    # dict_data = osoba
-    try:
-        for k,v in dict_data.items():
-            if k in name_types_dict:
-                v = v.split('❦')
-                for val in v:
-                    if name_types_dict[k] in person_name_types:
-                        name = ET.SubElement(parent, "name", transliteration=transliteration, code=name_types_dict[k])
-                    else:
-                        name = ET.SubElement(parent, "name", code=name_types_dict[k])
-                    name.text = val
-    except KeyError:
-        name = ET.SubElement(parent, "name", transliteration=transliteration, code=name_types_dict['name_simple'])
-        name.text = dict_data['name_simple']
 
 sex_dict = {'mężczyzna': 'male',
             'kobieta': 'female'}
-        
-def create_sex(parent, dict_data):
-    sex = {}
-    for k,v in dict_data.items():
-        if k == 'wikidata_ID.sexLabel.value':
-            sex['value'] = sex_dict[v]
-            sex = ET.SubElement(parent, 'sex', sex)
-            
-            
 
-place_dict = {'coordinates.value':'lat_lon',
-              'countryLabel.value':'country',
-              'endtime.value':'date_to',
-              'starttime.value':'date_from',
-              'place.value':'id',
-              'placeLabel.value':'name',
-              'officialName.value':'name',
-              'geonamesID.value':'geonames'}
-        
-def create_place(parent, dict_data, kind='birth'):
-    try:
-        # dict_data = people_list_of_dicts[3]
-        place_data = dict_data[f'wikidata_ID.{kind}place.value']
-        place = ET.SubElement(parent, 'place', place_data)
-    except KeyError:
-        pass
-        
-        
-    #     for element in dict_data[f'wikidata_ID.{kind}place.value']:
-    #         list_for_place = []
-    #         for k,v in element.items():
-    #             if k in ['coordinates.value', 'geonamesID.value', 'place.value']:
-    #                 list_for_place.append([place_dict[k], v])
-    #         empty_dict = {}
-    #         for name, value in list_for_place:
-    #             if name == 'lat_lon':
-    #                 empty_dict['lat'] = str(value['coordinates'][0])
-    #                 empty_dict['lon'] = str(value['coordinates'][1])
-    #             else:
-    #                 empty_dict[name] = value
-    #         place = ET.SubElement(parent, 'place', empty_dict)
-    #         list_for_place2 = []
-    #         for el in element['place_name']:
-    #             for k,v in el.items():
-    #                 try:
-    #                     if k in ['starttime.value', 'endtime.value']:
-    #                         try:
-    #                             v = re.findall('.+(?=T)', v)[0]
-    #                         except IndexError:
-    #                             pass
-    #                     list_for_place2.append([place_dict[k], v])
-    #                 except KeyError:
-    #                     pass
-    #             empty_dict2 = {}
-    #             for name, value in list_for_place2:
-    #                 empty_dict2[name] = value
-    #             place_name = ET.SubElement(place, 'name', empty_dict2)        
-    #     return place
-    # except KeyError:
-    #     pass
-              
-def create_birth_death_date(parent, dict_data, kind='birth', to='', to_bc='false', uncertain='false', in_words=''):
-    try:
-        empty_dict = {}
-        empty_dict['from'] = re.findall('.+(?=T)', dict_data[f'wikidata_ID.{kind}date.value'])[0]
-        if empty_dict['from'][0] == '-':
-            empty_dict['from-bc'] = 'true'
-        else:
-            empty_dict['from-bc'] = 'false'
-        empty_dict['to-bc'], empty_dict['to'],empty_dict['uncertain'], empty_dict['in-words'] = to_bc, to, uncertain, in_words
-        date = ET.SubElement(parent, 'date', empty_dict)
-        return date
-    except KeyError:
-        pass
+#names
 
-def create_annotation(parent, dict_data):
+def create_names(dict_data, transliteration='no'):
+    names = E.names()
     try:
-        bio = dict_data['bio']
-        annotation = ET.SubElement(parent, 'annotation')
-        annotation.text = bio
-    except KeyError:
-        pass
-
-def create_remark(parent, dict_data):
-    try:
-        remark = ET.SubElement(parent, "remark")
-        remark.text = dict_data['wikidata_ID.occupationLabel.value']
-        return remark
-    except KeyError:
-        pass
-    
-def create_tags(parent, dict_data):
-    try:
-        tags = ET.SubElement(parent, 'tags')
-        for element in dict_data['wikidata_ID.genreLabel.value'].split('❦'):
-            tag = ET.SubElement(tags, 'tag')
-            tag.text = element
-        return tags
-    except KeyError:
-        pass
-
-def create_links(parent, dict_data, kind='external-identifier'):
-    try:
-        links = ET.SubElement(parent, 'links')
-        empty_dict = {}
         for k,v in dict_data.items():
-            if k in ['BN_ID', 'VIAF_ID', 'wikidata_ID.author.value']:
-                if k == 'BN_ID':
-                    v = f"http://data.bn.org.pl/api/authorities.xml?id={v}"
-                elif k == 'VIAF_ID':
-                    v = f"https://viaf.org/viaf/{v}/"
-                empty_dict['access-date'] = today()
-                empty_dict['type'] = kind
-                link = ET.SubElement(links, 'link', empty_dict)
-                link.text = v
-        return links
+            if k in name_types_dict:
+                v = list(set(v.split('❦')))
+                for val in v:
+                    if name_types_dict[k] in person_name_types:
+                        names.append(E.name(val, transliteration=transliteration, code=name_types_dict[k]))
+                    else:
+                        names.append(E.name(val, code=name_types_dict[k]))
+    except KeyError:
+        names.append(E.name(val, transliteration=transliteration, code=name_types_dict['name_simple']))
+    return names
+    
+# test = create_names(osoba)
+# print(tostring(test, pretty_print=True, encoding='utf-8').decode())   
+
+
+def create_sex(dict_data):
+    try:
+        return E.sex(value=sex_dict[dict_data['wikidata_ID.sexLabel.value']])
     except KeyError:
         pass
-                
     
+# test = create_sex(osoba)
+# print(tostring(test, pretty_print=True, encoding='utf-8').decode())  
+
+
+# def create_headings(dict_data):
+    
+
+# jak spiąć to='', to_bc='false', uncertain='false', in_words='' z wikidatą
+# znaleźć na wikidacie przykłady ludzi urodzonych w BC lub z frazą "połowa XVII w."
         
-# tree = ET.ElementTree(date)
-# tree.write('test2.xml', encoding='UTF-8')       
-        
+    
+# jeśli jest kilka dat, to ma być jeden tag <date>, jeśli wikidata daje kilka informacji, to lepiej dać from i to i uncertain=True
+def create_birth_or_death(dict_data, kind='birth'):
+    try:
+        date_type = E.birth()
+        dates = dict_data[f'wikidata_ID.{kind}date.value'].split('❦')
+        if len(dates) == 1:
+            date = datetime.strptime(dates[0], "%Y-%m-%dT%H:%M:%SZ").date().strftime("%Y-%m-%d")
+            temp_dict = {'from':date, 'from-bc':'false', 'uncertain':'false'}
+        else:
+            dates = sorted([datetime.strptime(e, "%Y-%m-%dT%H:%M:%SZ").date() for e in dates])
+            dates = [e.strftime("%Y-%m-%d") for e in dates]
+            temp_dict = {'from':dates[0], 'from-bc':'false', 'to':dates[-1], 'to-bc':'false', 'uncertain':'true'}
+        date_type.append(E.date(temp_dict))
+        date_type.append(E.place(dict_data[f'wikidata_ID.{kind}place.value']))
+        if kind == 'death':
+            date_type.tag = 'death'
+        return date_type
+    except KeyError:
+        pass
+
+# test = create_birth_or_death(osoba, kind='death')
+# print(tostring(test, pretty_print=True, encoding='utf-8').decode())  
+    
+  
+
+# przypisanie działów przenieść na wcześniejszy etap i dodać do słownika osoby, a tutaj odwoływać się już do słownika
+def create_headings():
+    list_of_md5 = [e['MD5'] for e in dzialy_pbl if e['string uproszczony'] == '/literatura polska/hasła osobowe']
+    list_of_md5.extend([e['MD5'] for e in random.choices(dzialy_pbl, k=2)])
+    headings = E.headings()
+    for element in list_of_md5:
+        headings.append(E.heading({'id':element}))
+    return headings
+
+# test = create_headings()
+# print(tostring(test, pretty_print=True, encoding='utf-8').decode())  
+
+def create_annotation(dict_data):
+    try:
+        return E.annotation(dict_data['bio'])
+    except KeyError:
+        pass
+
+# test = create_annotation(osoba)
+# print(tostring(test, pretty_print=True, encoding='utf-8').decode())  
+
+def create_remark(dict_data):
+    try:
+        return E.remark(dict_data['wikidata_ID.occupationLabel.value'])
+    except KeyError:
+        pass
+
+# test = create_remark(osoba)
+# print(tostring(test, pretty_print=True, encoding='utf-8').decode()) 
+
+def create_tags(dict_data):
+    try:
+        tags = E.tags()
+        for element in dict_data['wikidata_ID.genreLabel.value'].split('❦'):
+            tags.append(E.tag(element))
+        return tags     
+    except KeyError:
+        pass
+    
+# test = create_tags(osoba)
+# print(tostring(test, pretty_print=True, encoding='utf-8').decode()) 
+
+def create_links(dict_data, kind='external-identifier'):
+    links = E.links()
+    links_dict = {}
+    for k,v in dict_data.items():
+        if k in ['BN_ID', 'VIAF_ID', 'wikidata_ID.author.value']:
+            if k == 'BN_ID':
+                v = f"http://data.bn.org.pl/api/authorities.xml?id={v}"
+            elif k == 'VIAF_ID':
+                v = f"https://viaf.org/viaf/{v}/"
+            links_dict['access-date'] = datetime.today().date().strftime("%Y-%m-%d")
+            links_dict['type'] = kind    
+            links.append(E.link(v, links_dict))
+    return links
+                
+# test = create_links(osoba, kind='external-identifier')
+# print(tostring(test, pretty_print=True, encoding='utf-8').decode())                 
+ 
+# połączyć wszystko + dodać excepty
+# przepuścić całą listę osób
+
+def create_person(dict_data):
+    person_id = dict_data['BN_ID']
+    person_status = 'published'
+    person_creator = 'cezary_rosinski'
+    creation_date = datetime.today().date().strftime("%Y-%m-%d")
+    publishing_date = datetime.today().date().strftime("%Y-%m-%d")
+    # person_origin = ? może wikidata?
+    person_dict = {'id': person_id, 'status': person_status, 'creator': person_creator, 'creation-date': creation_date, 'publishing-date': publishing_date}
+    try:
+        person_viaf = dict_data['VIAF_ID']
+        person_dict.update({'viaf': person_viaf})
+    except KeyError:
+        pass
+    person = E.person(person_dict)
+    for element in [create_names(dict_data), create_sex(dict_data), create_birth_or_death(dict_data), create_birth_or_death(dict_data, kind='death'), create_headings(), create_annotation(dict_data), create_remark(dict_data), create_tags(dict_data), create_links(dict_data)]:
+        if element is not None: person.append(element)
+    return person
+    
+# test = create_person(osoba)
+# print(tostring(test, pretty_print=True, encoding='utf-8').decode())       
+
+    
 
 
-# xml_nodes = create_node_structure(['pbl', 'files', 'people'])
-# xml_nodes['person'] = create_person(xml_nodes['people'], osoba)
-# xml_nodes['names'] = ET.SubElement(xml_nodes['person'], "names")          
-# create_name(xml_nodes['names'], osoba)   
-# create_sex(xml_nodes['person'], osoba)
-# xml_nodes['birth'] = ET.SubElement(xml_nodes['person'], "birth")       
-# create_birth_death_date(xml_nodes['birth'], osoba)
-# create_place(xml_nodes['birth'], osoba)
-# xml_nodes['death'] = ET.SubElement(xml_nodes['person'], "death")     
-# create_birth_death_date(xml_nodes['death'], osoba, kind='death')
-# create_place(xml_nodes['death'], osoba, kind='death')
-# create_annotation(xml_nodes['person'], osoba)
-# create_remark(xml_nodes['person'], osoba)
-# create_tags(xml_nodes['person'], osoba)
-# create_links(xml_nodes['person'], osoba)
+# people = E.people()
+# for person in tqdm(people_list_of_dicts):
+#     try:
+#         people.append(create_person(person))
+#     except KeyError:
+#         pass
+# import_people = E.pbl(E.files(people))
+# to_save = ElementTree(import_people)
+# to_save.write("import_people.xml", xml_declaration=True, encoding='utf-8')     
 
-# tree = ET.ElementTree(xml_nodes['pbl'])
 
-# # [elem.tag for elem in xml_nodes['pbl'].iter()]
 
-# tree.write('test.xml', encoding='UTF-8')
+# people.append(create_person(osoba))
+# print(tostring(people, pretty_print=True, encoding='utf-8').decode())      
+
+
+
+
+# print(tostring(import_people, pretty_print=True, encoding='utf-8').decode())   
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
              
 

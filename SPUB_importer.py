@@ -53,11 +53,15 @@ def def_period(x):
 
 def update_mongo_with_wikidata(mongo_record):
     mongo_id = mongo_record['_id']
-    viaf_id = re.findall('\d+', mongo_record['VIAF_ID'])[0]
-    resp = query_wikidata_person_with_viaf(viaf_id)
-    mongo_record.update({'wikidata_result': resp})
-    newvalues = { "$set": mongo_record}
-    mycol.update_one({'_id': mongo_id}, newvalues)
+    if pd.notnull(mongo_record["VIAF_ID"]):
+        try:
+            viaf_id = re.findall('\d+', mongo_record['VIAF_ID'])[0]
+            resp = query_wikidata_person_with_viaf(viaf_id)
+            mongo_record.update({'wikidata_result': resp})
+            newvalues = { "$set": mongo_record}
+            mycol.update_one({'_id': mongo_id}, newvalues)
+        except ValueError:
+            pass
 
 #%% main
 #read data
@@ -110,15 +114,23 @@ client = pymongo.MongoClient()
 mydb = client['pbl-ibl-waw-pl_db']
 mycol = mydb['people']
 # mydb.drop_collection('people')
-mycol.insert_many([people_dict[e] for e in people_dict])
+# mycol.insert_many([people_dict[e] for e in people_dict])
 
 #!!!TUTAJ!!! - odpytać wikidatę, bo dostałem bana
-mongo_len = len(list(mycol.find()))    
+mongo_len = len(list(mycol.find()))
+
+# [update_mongo_with_wikidata(e) for e in tqdm(mycol.find(), total=mongo_len)]   
+
 with ThreadPoolExecutor() as executor:
     list(tqdm(executor.map(update_mongo_with_wikidata,mycol.find()), total=mongo_len))
 
+# missing_wikidata = mycol.find({'$or':[{'wikidata_result': {'$exists':False}}, {'wikidata_result':{}}]})
+# len_missing = len(list(missing_wikidata))
+# missing_wikidata = mycol.find({'$or':[{'wikidata_result': {'$exists':False}}, {'wikidata_result':{}}]})
 
-mycol.find()[0]['VIAF_ID']
+# for el in tqdm(missing_wikidata, total = len_missing):
+#     update_mongo_with_wikidata(el)
+
 
 
 

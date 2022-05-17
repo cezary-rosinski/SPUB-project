@@ -7,6 +7,8 @@ from http.client import RemoteDisconnected
 import regex as re
 from SPARQLWrapper import SPARQLWrapper, JSON
 from collections import defaultdict
+import sys
+from urllib.error import HTTPError, URLError
 
 def wikidata_simple_dict_resp(results):
     results = results['results']['bindings']
@@ -19,7 +21,9 @@ def wikidata_simple_dict_resp(results):
     return dd
     
 def query_wikidata_person_with_viaf(viaf_id):
-    sparql = SPARQLWrapper("https://query.wikidata.org/sparql")
+    # viaf_id = 49338782
+    user_agent = "WDQS-example Python/%s.%s" % (sys.version_info[0], sys.version_info[1])
+    sparql = SPARQLWrapper("https://query.wikidata.org/sparql", agent=user_agent)
     sparql.setQuery(f"""PREFIX wdt: <http://www.wikidata.org/prop/direct/>
                 SELECT distinct ?author ?authorLabel ?birthplaceLabel ?deathplaceLabel ?birthdate ?deathdate ?sexLabel ?pseudonym ?occupationLabel ?genreLabel ?birthNameLabel ?aliasLabel ?birthplace ?deathplace WHERE {{ 
                   ?author wdt:P214 "{viaf_id}" ;
@@ -35,9 +39,15 @@ def query_wikidata_person_with_viaf(viaf_id):
                   optional {{ ?author wdt:P1477 ?birthName . }}
                 SERVICE wikibase:label {{ bd:serviceParam wikibase:language "pl". }}}}""")
     sparql.setReturnFormat(JSON)
-    results = sparql.query().convert()
-    results = wikidata_simple_dict_resp(results)
-    
+    while True:
+        try:
+            results = sparql.query().convert()
+            break
+        except HTTPError:
+            time.sleep(2)
+        except URLError:
+            time.sleep(5)
+    results = wikidata_simple_dict_resp(results)  
     return results
     
 
@@ -47,6 +57,7 @@ def query_wikidata(list_of_dicts):
         while True:
             try:
                 viaf = osoba['VIAF_ID']
+                # viaf = 49338782
                 sparql_query = f"""PREFIX wdt: <http://www.wikidata.org/prop/direct/>
                 SELECT distinct ?author ?authorLabel ?birthplaceLabel ?deathplaceLabel ?birthdate ?deathdate ?sexLabel ?pseudonym ?occupationLabel ?genreLabel ?birthNameLabel ?aliasLabel ?birthplace ?deathplace WHERE {{ 
                   ?author wdt:P214 "{viaf}" ;

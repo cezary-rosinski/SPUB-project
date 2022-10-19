@@ -3,6 +3,7 @@ from my_functions import marc_parser_dict_for_field, simplify_string
 from tqdm import tqdm
 import fuzzywuzzy
 import pandas as pd
+import jellyfish
 
 #%%def
 def read_mrk(path):
@@ -71,11 +72,38 @@ country_codes = [list(e[-1]) for e in country_codes.iterrows()]
 country_codes = dict(zip([e[0] for e in country_codes], [{'MARC_name': e[1], 'iso_alpha_2': e[2], 'Geonames_name': e[-1]} for e in country_codes]))
 #%% main
 
+dir(jellyfish)
+
 records = read_mrk('bn_harvested_2021_05_12.mrk')
 records[0]
 
 test = [{k:v for k,v in e.items() if k in ['001', '008', '260']} for e in records]
+[e.update({'country_code_marc21': e.get('008')[0][15:18].replace('\\', '')}) for e in test]
+[e.update({'iso_alpha_2': country_codes.get(e.get('country_code_marc21')).get('iso_alpha_2')}) if e.get('country_code_marc21') in country_codes else e.update({'iso_alpha_2': "boom"}) for e in test]
+
+#dodać do słownika nazwę
+# zrobić słownik nazw
+# dodać identyfikator nazwy do rekordu, żeby mieć powiązanie
+# poszukać, jak zrobiłem próbkę kartoteki miejsc: C:\Users\Cezary\Documents\SPUB-project\SPUB_query_wikidata.py -- tu jest droga z wikidaty
+
+# dodać też miejsca z osób: urodzenie + śmierć
+
 test[0]
+
+test[0].update()
+
+{'001': ['b0000002769128'],
+ '008': ['130220s2013\\\\\\\\ru\\\\\\\\\\\\\\\\\\\\\\|000\\0\\ruso\\'],
+ '260': ['\\\\$aMoskva :$b"Centr knigi Rudomino",$c2011.'],
+ 'country_marc_code': 'ru',
+ 'country': 'Russia',
+ 'place_name': 'Moskva'
+ }
+
+MARC_code	MARC_name	iso_alpha_2	Geonames_name
+
+ru	Russia (Federation)	RU	Russia
+
 
 # test = [e for e in records if '773' in e]
 # test[0]
@@ -90,10 +118,22 @@ for record in tqdm(records):
     
 places = set([e for sub in places for e in sub])
 # sprawdzić wyrywkowo rzeczy w []
+
+# test = [e for e in places if any(x in e for x in ['[', ']'])]
+
+places = set([e.replace('[etc.]', '').replace('[!]', '') for e in places])
 places = set([''.join([l for l in el if l.isalnum() or l in['-', ' ', '(', ')']]).strip() for el in places])
 
 
 
+
+
+
+
+
+
+[etc.]
+[!]
 
 
 ''.join([e for e in list(test)[1] if e.isalnum() or e == ''])

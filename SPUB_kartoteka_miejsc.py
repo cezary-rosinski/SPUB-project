@@ -1,9 +1,18 @@
 from SPUB_importer_read_data import read_MARC21
+from SPUB_query_wikidata import wikidata_simple_dict_resp
 from my_functions import marc_parser_dict_for_field, simplify_string
 from tqdm import tqdm
 import fuzzywuzzy
 import pandas as pd
 import jellyfish
+import pymongo
+import requests
+from concurrent.futures import ThreadPoolExecutor
+from SPARQLWrapper import SPARQLWrapper, JSON
+from collections import defaultdict
+import sys
+from urllib.error import HTTPError, URLError
+from flatten_json import flatten
 
 #%%def
 def read_mrk(path):
@@ -65,12 +74,129 @@ def harvest_geonames(set_of_places):
         except (KeyError, ValueError):
             errors.append((old, city, country))
     else: errors.append((old, city, country))
+
+def query_wikidata_person_with_viaf(viaf_id):
+    # viaf_id = 49338782
+    user_agent = "WDQS-example Python/%s.%s" % (sys.version_info[0], sys.version_info[1])
+    sparql = SPARQLWrapper("https://query.wikidata.org/sparql", agent=user_agent)
+    sparql.setQuery(f"""PREFIX wdt: <http://www.wikidata.org/prop/direct/>
+                SELECT distinct ?author ?authorLabel ?birthplaceLabel ?deathplaceLabel ?birthdate ?deathdate ?sexLabel ?pseudonym ?occupationLabel ?genreLabel ?birthNameLabel ?aliasLabel ?birthplace ?deathplace WHERE {{ 
+                  ?author wdt:P214 "{viaf_id}" ;
+                  optional {{ ?author wdt:P19 ?birthplace . }}
+                  optional {{ ?author wdt:P569 ?birthdate . }}
+                  optional {{ ?author wdt:P570 ?deathdate . }}
+                  optional {{ ?author wdt:P20 ?deathplace . }}
+                  optional {{ ?author wdt:P21 ?sex . }}
+                  optional {{ ?author wdt:P106 ?occupation . }}
+                  optional {{ ?author wdt:P742 ?pseudonym . }}
+                  optional {{ ?author wdt:P136 ?genre . }}
+                  optional {{ ?author rdfs:label ?alias . }}
+                  optional {{ ?author wdt:P1477 ?birthName . }}
+                SERVICE wikibase:label {{ bd:serviceParam wikibase:language "pl". }}}}""")
+    sparql.setReturnFormat(JSON)
+    while True:
+        try:
+            results = sparql.query().convert()
+            break
+        except HTTPError:
+            time.sleep(2)
+        except URLError:
+            time.sleep(5)
+    results = wikidata_simple_dict_resp(results)  
+    return results
+
+def query_for_wikidata_place(wikidata_url):
+    # wikidata_url = 'http://www.wikidata.org/entity/Q1799'
+    user_agent = "WDQS-example Python/%s.%s" % (sys.version_info[0], sys.version_info[1])
+    sparql = SPARQLWrapper("https://query.wikidata.org/sparql", agent=user_agent)
+    place_id = re.findall('Q\d+', wikidata_url)[-1]
+    sparql.setQuery(f"""PREFIX wdt: <http://www.wikidata.org/prop/direct/>
+                SELECT distinct ?placeLabel ?country ?countryLabel ?countryStarttime ?countryEndtime ?officialName ?officialNameStarttime ?officialNameEndtime ?coordinates ?geonamesID ?names WHERE {{
+                  wd:{place_id} rdfs:label ?placeLabel 
+                  filter(lang(?placeLabel) = 'pl' || lang(?placeLabel) = 'en') .
+                  optional {{ wd:{place_id} skos:altLabel ?names 
+                  filter(lang(?names) = 'pl') . }}
+                  optional {{ wd:{place_id} p:P17 ?countryStatement . }}
+                  bind(coalesce(?countryStatement,"brak danych" ^^xsd:string) as ?countryTest)
+                  optional {{ ?countryTest ps:P17 ?country . }}
+                  optional {{ ?countryTest pq:P580 ?countryStarttime . }}
+                  optional {{ ?countryTest pq:P582 ?countryEndtime . }}
+                  optional {{ wd:{place_id} wdt:P625 ?coordinates . }}
+                  optional {{ wd:{place_id} wdt:P1566 ?geonamesID . }}
+                  optional {{ wd:{place_id} p:P1448 ?statement . }}
+                  bind(coalesce(?statement,"brak danych" ^^xsd:string) as ?test)
+                  optional {{ ?test ps:P1448 ?officialName . }}
+                  optional {{ ?test pq:P580 ?officialNameStarttime . }}
+                  optional {{ ?test pq:P582 ?officialNameEndtime . }}
+                  SERVICE wikibase:label {{ bd:serviceParam wikibase:language "pl". }}}}""")
+    sparql.setReturnFormat(JSON)
+    while True:
+        try:
+            results = sparql.query().convert()
+            break
+        except HTTPError:
+            time.sleep(2)
+        except URLError:
+            time.sleep(5)
+    # results = wikidata_simple_dict_resp(results) 
+    
+    results = [{k:v for k,v in flatten(e, separator='.').items() if k in wiki_columns} for e in results['results']['bindings']]
+    [e.update({'place.value':wikidata_url}) for e in results]
+    return results
+
+def put_result_in_dict(wikidata_url):
+    wikidata_places_dict.update({wikidata_url: query_for_wikidata_place(wikidata_url)})
+
+wiki_columns = ['placeLabel.xml:lang', 'placeLabel.value', 'place.value', 'country.value', 'countryLabel.xml:lang', 'countryLabel.value', 'countryStarttime.value', 'countryEndtime.value', 'coordinates.value', 'geonamesID.value', 'officialName.xml:lang', 'officialName.value', 'officialNameStarttime.value', 'officialNameEndtime.value', 'names.xml:lang', 'names.value']
 #%% load
 
 country_codes = pd.read_excel('translation_country_codes.xlsx')
 country_codes = [list(e[-1]) for e in country_codes.iterrows()]
 country_codes = dict(zip([e[0] for e in country_codes], [{'MARC_name': e[1], 'iso_alpha_2': e[2], 'Geonames_name': e[-1]} for e in country_codes]))
 #%% main
+
+#%% miejsca z osób z wikidaty
+client = pymongo.MongoClient()
+mydb = client['pbl-ibl-waw-pl_db']
+mycol = mydb['people']
+
+final_result = []
+[final_result.append(e) for e in mycol.find()]
+# final_result[0]
+
+places_from_wiki = []
+[places_from_wiki.append(e.get('wikidata_result')) for e in final_result if e.get('wikidata_result')]
+places_from_wiki = [{k:v for k,v in e.items()if k in ['birthplace', 'deathplace']} for e in places_from_wiki]
+
+places_from_wiki = set([elemen for elemen in [eleme for sub in [elem for elem in [[ele.get('value') for ele in [el for sub in list(e.values()) for el in sub] if ele] for e in places_from_wiki] if elem] for eleme in sub] if 'entity' in elemen])
+
+wikidata_places_dict = {}
+with ThreadPoolExecutor() as executor:
+    list(tqdm(executor.map(put_result_in_dict,places_from_wiki), total=len(places_from_wiki)))
+    
+df = pd.concat([pd.DataFrame(e) for e in wikidata_places_dict.values()])    
+df = df[wiki_columns]
+df.to_excel('SPUB_miejsca_z_osob.xlsx', index=False) 
+
+#%%
+
+# zderzyć miejsca wydania z miejscami z osób
+# jeśli są nowe, to pozyskać dla nich informacje
+# przygotować tabelę do manualnej pracy
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 dir(jellyfish)
 

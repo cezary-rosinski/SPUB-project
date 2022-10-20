@@ -132,8 +132,9 @@ with ThreadPoolExecutor() as executor:
 #     update_mongo_with_wikidata(el)
 
 
-
-
+final_result = []
+[final_result.append(e) for e in mycol.find()]
+final_result[0]
 
 
 

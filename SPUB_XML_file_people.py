@@ -20,7 +20,7 @@ import random
 
 # [i for i, e in enumerate(people_list_of_dicts) if 'VIAF_ID' not in e][0]
         
-dzialy_pbl = gsheet_to_df('14hkWimoH7iBit_yMAkxmEGGI8vQeZslPDHzslNVSzDQ', 'Nowa struktura działów')[['string uproszczony', 'MD5']].to_dict(orient='records')
+dzialy_pbl = gsheet_to_df('14hkWimoH7iBit_yMAkxmEGGI8vQeZslPDHzslNVSzDQ', 'SPUB_Nowa struktura działów')[['string uproszczony', 'MD5']].to_dict(orient='records')
 
 person_name_types = ['main-name',
                      'family-name',

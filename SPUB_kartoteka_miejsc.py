@@ -1,3 +1,5 @@
+import sys
+sys.path.insert(1, 'C:/Users/Cezary/Documents/IBL-PAN-Python')
 from SPUB_importer_read_data import read_MARC21
 from SPUB_query_wikidata import wikidata_simple_dict_resp
 from my_functions import marc_parser_dict_for_field, simplify_string
@@ -13,6 +15,7 @@ from collections import defaultdict
 import sys
 from urllib.error import HTTPError, URLError
 from flatten_json import flatten
+import pickle
 
 #%%def
 def read_mrk(path):
@@ -184,28 +187,65 @@ df.to_excel('SPUB_miejsca_z_osob.xlsx', index=False)
 # jeśli są nowe, to pozyskać dla nich informacje
 # przygotować tabelę do manualnej pracy
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-dir(jellyfish)
-
 records = read_mrk('bn_harvested_2021_05_12.mrk')
+records = read_mrk('bn_books_2022-08-26.mrk')
 records[0]
 
 test = [{k:v for k,v in e.items() if k in ['001', '008', '260']} for e in records]
 [e.update({'country_code_marc21': e.get('008')[0][15:18].replace('\\', '')}) for e in test]
-[e.update({'iso_alpha_2': country_codes.get(e.get('country_code_marc21')).get('iso_alpha_2')}) if e.get('country_code_marc21') in country_codes else e.update({'iso_alpha_2': "boom"}) for e in test]
+[e.update({'iso_alpha_2': country_codes.get(e.get('country_code_marc21')).get('iso_alpha_2')}) if e.get('country_code_marc21') in country_codes else e.update({'iso_alpha_2': None}) for e in test]
+
+test = [e for e in test if '260' in e]
+
+[eleme.update({'places':[elem for sub in [[''.join([ele for ele in el.get('$a').replace('[etc.]', '').replace('[!]', '') if ele.isalnum() or ele in ['-', ' ', '(', ')']]).strip() for el in marc_parser_dict_for_field(e, '\\$') if '$a' in el] for e in eleme.get('260')] for elem in sub]}) for eleme in test]
+
+# Store data (serialize)
+with open('places_from_biblio.pickle', 'wb') as handle:
+    pickle.dump(test, handle, protocol=pickle.HIGHEST_PROTOCOL)
+    
+    
+unique_places = set([el for sub in [e.get('places') for e in test] for el in sub])
+
+with open('places_from_biblio_unique.pickle', 'wb') as handle:
+    pickle.dump(unique_places, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+
+
+
+
+
+
+
+places = set([e for sub in places for e in sub])
+# sprawdzić wyrywkowo rzeczy w []
+
+# test = [e for e in places if any(x in e for x in ['[', ']'])]
+
+places = set([e.replace('[etc.]', '').replace('[!]', '') for e in places])
+places = set([''.join([l for l in el if l.isalnum() or l in['-', ' ', '(', ')']]).strip() for el in places])
+
+
+# Load data (deserialize)
+with open('filename.pickle', 'rb') as handle:
+    unserialized_data = pickle.load(handle)
+
+
+
+test[2]
+
+
+
+
+for e in test:
+    [marc_parser_dict_for_field(el, '\\$') for el in e.get('260')]
+    
+    
+[[marc_parser_dict_for_field(el, '\\$') for el in e.get('260')] for e in test]
+
+record_places = [marc_parser_dict_for_field(e, '\\$') for e in record.get('260')]
+record_places = [[e.get('$a') for e in el if '$a' in e] for el in record_places]
+record_places = [e for sub in record_places for e in sub]
+places.append(record_places)
 
 #dodać do słownika nazwę
 # zrobić słownik nazw

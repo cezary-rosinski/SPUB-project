@@ -16,6 +16,10 @@ import sys
 from urllib.error import HTTPError, URLError
 from flatten_json import flatten
 import pickle
+import regex as re
+import time
+from geonames_accounts import geonames_users
+import random
 
 #%%def
 def read_mrk(path):
@@ -149,6 +153,25 @@ def query_for_wikidata_place(wikidata_url):
 
 def put_result_in_dict(wikidata_url):
     wikidata_places_dict.update({wikidata_url: query_for_wikidata_place(wikidata_url)})
+    
+def query_geonames(m):
+    # m = 'Moscow'
+    url = 'http://api.geonames.org/searchJSON?'
+    params = {'username': random.choice(geonames_users), 'q': m, 'featureClass': 'P', 'style': 'FULL'}
+    result = requests.get(url, params=params).json()
+    if 'status' in result:
+        time.sleep(5)
+        query_geonames(m)
+    else:
+        geonames_resp = [[e['geonameId'], e['name'], e['lat'], e['lng'], e['score']] for e in result['geonames']]
+        if len(geonames_resp) == 0:
+            miejscowosci_total[m] = geonames_resp
+        if len(geonames_resp) == 1:
+            miejscowosci_total[m] = geonames_resp[0]
+        elif len(geonames_resp) > 1:    
+            geonames_resp = max(geonames_resp, key=lambda x: x[-1])
+            miejscowosci_total[m] = geonames_resp
+
 
 wiki_columns = ['placeLabel.xml:lang', 'placeLabel.value', 'place.value', 'country.value', 'countryLabel.xml:lang', 'countryLabel.value', 'countryStarttime.value', 'countryEndtime.value', 'coordinates.value', 'geonamesID.value', 'officialName.xml:lang', 'officialName.value', 'officialNameStarttime.value', 'officialNameEndtime.value', 'names.xml:lang', 'names.value']
 #%% load
@@ -159,27 +182,35 @@ country_codes = dict(zip([e[0] for e in country_codes], [{'MARC_name': e[1], 'is
 #%% main
 
 #%% miejsca z osób z wikidaty
-client = pymongo.MongoClient()
-mydb = client['pbl-ibl-waw-pl_db']
-mycol = mydb['people']
+# client = pymongo.MongoClient()
+# mydb = client['pbl-ibl-waw-pl_db']
+# mycol = mydb['people']
 
-final_result = []
-[final_result.append(e) for e in mycol.find()]
-# final_result[0]
+# final_result = []
+# [final_result.append(e) for e in mycol.find()]
+# # final_result[0]
 
-places_from_wiki = []
-[places_from_wiki.append(e.get('wikidata_result')) for e in final_result if e.get('wikidata_result')]
-places_from_wiki = [{k:v for k,v in e.items()if k in ['birthplace', 'deathplace']} for e in places_from_wiki]
+# places_from_wiki = []
+# [places_from_wiki.append(e.get('wikidata_result')) for e in final_result if e.get('wikidata_result')]
+# places_from_wiki = [{k:v for k,v in e.items()if k in ['birthplace', 'deathplace']} for e in places_from_wiki]
 
-places_from_wiki = set([elemen for elemen in [eleme for sub in [elem for elem in [[ele.get('value') for ele in [el for sub in list(e.values()) for el in sub] if ele] for e in places_from_wiki] if elem] for eleme in sub] if 'entity' in elemen])
+# places_from_wiki = set([elemen for elemen in [eleme for sub in [elem for elem in [[ele.get('value') for ele in [el for sub in list(e.values()) for el in sub] if ele] for e in places_from_wiki] if elem] for eleme in sub] if 'entity' in elemen])
 
-wikidata_places_dict = {}
-with ThreadPoolExecutor() as executor:
-    list(tqdm(executor.map(put_result_in_dict,places_from_wiki), total=len(places_from_wiki)))
+# wikidata_places_dict = {}
+# with ThreadPoolExecutor() as executor:
+#     list(tqdm(executor.map(put_result_in_dict,places_from_wiki), total=len(places_from_wiki)))
+
+# with open('places_from_wikidata.pickle', 'wb') as handle:
+#     pickle.dump(wikidata_places_dict, handle, protocol=pickle.HIGHEST_PROTOCOL)
     
-df = pd.concat([pd.DataFrame(e) for e in wikidata_places_dict.values()])    
-df = df[wiki_columns]
-df.to_excel('SPUB_miejsca_z_osob.xlsx', index=False) 
+with open('places_from_wikidata.pickle', 'rb') as handle:
+    bio_places_dict = pickle.load(handle)
+    
+# df = pd.concat([pd.DataFrame(e) for e in wikidata_places_dict.values()])    
+# df = df[wiki_columns]
+# df.to_excel('SPUB_miejsca_z_osob.xlsx', index=False) 
+
+df = pd.read_excel('SPUB_miejsca_z_osob.xlsx')
 
 #%%
 
@@ -188,31 +219,66 @@ df.to_excel('SPUB_miejsca_z_osob.xlsx', index=False)
 # przygotować tabelę do manualnej pracy
 
 records = read_mrk('bn_harvested_2021_05_12.mrk')
-records = read_mrk('bn_books_2022-08-26.mrk')
 records[0]
 
-test = [{k:v for k,v in e.items() if k in ['001', '008', '260']} for e in records]
-[e.update({'country_code_marc21': e.get('008')[0][15:18].replace('\\', '')}) for e in test]
-[e.update({'iso_alpha_2': country_codes.get(e.get('country_code_marc21')).get('iso_alpha_2')}) if e.get('country_code_marc21') in country_codes else e.update({'iso_alpha_2': None}) for e in test]
+# test = [{k:v for k,v in e.items() if k in ['001', '008', '260']} for e in records]
+# [e.update({'country_code_marc21': e.get('008')[0][15:18].replace('\\', '')}) for e in test]
+# [e.update({'iso_alpha_2': country_codes.get(e.get('country_code_marc21')).get('iso_alpha_2')}) if e.get('country_code_marc21') in country_codes else e.update({'iso_alpha_2': None}) for e in test]
 
-test = [e for e in test if '260' in e]
+# test = [e for e in test if '260' in e]
 
-[eleme.update({'places':[elem for sub in [[''.join([ele for ele in el.get('$a').replace('[etc.]', '').replace('[!]', '') if ele.isalnum() or ele in ['-', ' ', '(', ')']]).strip() for el in marc_parser_dict_for_field(e, '\\$') if '$a' in el] for e in eleme.get('260')] for elem in sub]}) for eleme in test]
+# [eleme.update({'places':[elem for sub in [[''.join([ele for ele in el.get('$a').replace('[etc.]', '').replace('[!]', '') if ele.isalnum() or ele in ['-', ' ', '(', ')']]).strip() for el in marc_parser_dict_for_field(e, '\\$') if '$a' in el] for e in eleme.get('260')] for elem in sub]}) for eleme in test]
 
-# Store data (serialize)
-with open('places_from_biblio.pickle', 'wb') as handle:
-    pickle.dump(test, handle, protocol=pickle.HIGHEST_PROTOCOL)
+# # Store data (serialize)
+# with open('places_from_biblio.pickle', 'wb') as handle:
+#     pickle.dump(test, handle, protocol=pickle.HIGHEST_PROTOCOL)
     
+# unique_places = set([el for sub in [e.get('places') for e in test] for el in sub])
+
+# with open('places_from_biblio_unique.pickle', 'wb') as handle:
+#     pickle.dump(unique_places, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+with open('places_from_biblio.pickle', 'rb') as handle:
+    biblio_places = pickle.load(handle)
+with open('places_from_biblio_unique.pickle', 'rb') as handle:
+    biblio_places_unique = pickle.load(handle)
+biblio_places_unique = set([e for e in biblio_places_unique if e])
+
+
+#%% query geonames
+
+# miejscowosci_total = {}
+# with ThreadPoolExecutor() as excecutor:
+#     list(tqdm(excecutor.map(query_geonames, biblio_places_unique),total=len(biblio_places_unique)))
     
-unique_places = set([el for sub in [e.get('places') for e in test] for el in sub])
+# with open('miejscowosci_biblio_geonames.pickle', 'wb') as handle:
+#     pickle.dump(miejscowosci_total, handle, protocol=pickle.HIGHEST_PROTOCOL)
+    
+with open('miejscowosci_biblio_geonames.pickle', 'rb') as handle:
+    biblio_places_geonames = pickle.load(handle)    
+    
+biblio_places_geonames = {k:v for k,v in biblio_places_geonames.items() if v}
 
-with open('places_from_biblio_unique.pickle', 'wb') as handle:
-    pickle.dump(unique_places, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+#tutaj sprawdzić, czy są miejsca, które wcześniej nie pojawiły się w zbiorach z wikidaty
+#jak to sprawdzić? przez obecność geonames
+    
 
 
+test = [{k:v for k,v in e.items() if k in ['iso_alpha_2', 'places']} for e in biblio_places]
 
 
+test = [list(e.values()) for e in test]
+test = list(set([tuple(el if i == 0 else tuple(el) for i, el in enumerate(e)) for e in test]))
 
+'524901' in df['geonamesID.value']
+
+set(df[df['placeLabel.value'] == 'Moskwa']['geonamesID.value'].to_list())
+
+
+test = df['geonamesID.value'].to_list()
+
+print(test[0])
 
 
 

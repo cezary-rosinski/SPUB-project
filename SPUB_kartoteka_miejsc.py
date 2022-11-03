@@ -2,7 +2,7 @@ import sys
 sys.path.insert(1, 'C:/Users/Cezary/Documents/IBL-PAN-Python')
 from SPUB_importer_read_data import read_MARC21
 from SPUB_query_wikidata import wikidata_simple_dict_resp
-from my_functions import marc_parser_dict_for_field, simplify_string
+from my_functions import marc_parser_dict_for_field, simplify_string, gsheet_to_df
 from tqdm import tqdm
 import fuzzywuzzy
 import pandas as pd
@@ -20,6 +20,7 @@ import regex as re
 import time
 from geonames_accounts import geonames_users
 import random
+from collections import Counter
 
 #%%def
 def read_mrk(path):
@@ -155,7 +156,7 @@ def put_result_in_dict(wikidata_url):
     wikidata_places_dict.update({wikidata_url: query_for_wikidata_place(wikidata_url)})
     
 def query_geonames(m):
-    # m = 'Moscow'
+    # m = 'Addis Ababa'
     url = 'http://api.geonames.org/searchJSON?'
     params = {'username': random.choice(geonames_users), 'q': m, 'featureClass': 'P', 'style': 'FULL'}
     result = requests.get(url, params=params).json()
@@ -172,6 +173,26 @@ def query_geonames(m):
             geonames_resp = max(geonames_resp, key=lambda x: x[-1])
             miejscowosci_total[m] = geonames_resp
 
+def query_wikidata_place_id_with_geonames(geonames_id):
+    # geonames_id = 3096472
+# for geonames_id in biblio_places_geonames_ids:
+    user_agent = "WDQS-example Python/%s.%s" % (sys.version_info[0], sys.version_info[1])
+    sparql = SPARQLWrapper("https://query.wikidata.org/sparql", agent=user_agent)
+    sparql.setQuery(f"""PREFIX wdt: <http://www.wikidata.org/prop/direct/>
+                SELECT distinct ?place WHERE {{
+                  ?place wdt:P1566 "{geonames_id}"}}""")
+    sparql.setReturnFormat(JSON)
+    while True:
+        try:
+            results = sparql.query().convert()
+            break
+        except HTTPError:
+            time.sleep(2)
+        except URLError:
+            time.sleep(5)
+    results = [{v for k,v in flatten(e, separator='.').items() if k in wiki_columns} for e in results['results']['bindings']]
+    if results:
+        wikidata_ids_set.add(results[0].pop())
 
 wiki_columns = ['placeLabel.xml:lang', 'placeLabel.value', 'place.value', 'country.value', 'countryLabel.xml:lang', 'countryLabel.value', 'countryStarttime.value', 'countryEndtime.value', 'coordinates.value', 'geonamesID.value', 'officialName.xml:lang', 'officialName.value', 'officialNameStarttime.value', 'officialNameEndtime.value', 'names.xml:lang', 'names.value']
 #%% load
@@ -262,99 +283,84 @@ biblio_places_geonames = {k:v for k,v in biblio_places_geonames.items() if v}
 
 #tutaj sprawdzić, czy są miejsca, które wcześniej nie pojawiły się w zbiorach z wikidaty
 #jak to sprawdzić? przez obecność geonames
+
+bio_places_set_for_geonames = set()
+[[bio_places_set_for_geonames.add(int(d.get('geonamesID.value'))) if d.get('geonamesID.value') else None for d in e] for e in bio_places_dict.values()]
+
+biblio_places_for_update = {k:v for k,v in biblio_places_geonames.items() if v[0] not in bio_places_set_for_geonames}
+
+biblio_places_for_update = set([tuple(e) for e in biblio_places_for_update.values()])
+# Counter([e[0] for e in biblio_places_for_update]).most_common(10)
+# [e for e in biblio_places_for_update if e[0] == 2925533]
+biblio_places_geonames_ids = set([e[0] for e in biblio_places_for_update])
+
+wikidata_ids_set = set()
+with ThreadPoolExecutor() as executor:
+    list(tqdm(executor.map(query_wikidata_place_id_with_geonames,biblio_places_geonames_ids), total=len(biblio_places_geonames_ids)))
+
+test_places_file = gsheet_to_df('1Ruu8fa-wzZ2fwj86S4UhWn_J3_xREjaw_B-P_B7OOvs', 'out')
+
+places_to_be_found = set([e for e in wikidata_ids_set if e not in bio_places_dict and e not in test_places_file['id'].to_list()])
+
+wikidata_places_dict = {}
+with ThreadPoolExecutor() as executor:
+    list(tqdm(executor.map(put_result_in_dict,places_to_be_found), total=len(places_to_be_found)))
+
+places_dict = bio_places_dict | wikidata_places_dict
+
+places_dict = {k:v for k,v in places_dict.items() if k not in test_places_file['id'].to_list()}
+
+df = pd.concat([pd.DataFrame(e) for e in places_dict.values()]) 
+df = df[wiki_columns]
+df.to_excel('SPUB_miejsca_z_osob.xlsx', index=False) 
+
+#%% przetwarzanie kartoteki miejsc
+
+df = pd.read_excel('SPUB_miejsca_z_osob.xlsx')
+
+grouped = df.groupby('place.value')
+
+date_cols = ['countryStarttime.value', 'countryEndtime.value', 'officialNameStarttime.value', 'officialNameEndtime.value']
+
+final_df = pd.DataFrame()
+miejsca_bez_dat_df = pd.DataFrame()
+for name, group in tqdm(grouped, total=len(grouped)):
+    # name = 'http://www.wikidata.org/entity/Q690039'
+    # name = 'http://www.wikidata.org/entity/Q25430'
+    # group = grouped.get_group(name)
+    pl_labels = group.loc[group['placeLabel.xml:lang'] == 'pl'].shape[0]
+    en_labels = group.loc[group['placeLabel.xml:lang'] == 'en'].shape[0]
+    if pl_labels == en_labels:
+        group = group.loc[group['placeLabel.xml:lang'] == 'pl']
+    final_df = pd.concat([final_df, group])
+final_df = final_df.reset_index(drop=True)    
     
+#1 wiersz są okej
 
+#2 więcej wierszy i daty puste
 
-test = [{k:v for k,v in e.items() if k in ['iso_alpha_2', 'places']} for e in biblio_places]
+#3 daty
 
-
-test = [list(e.values()) for e in test]
-test = list(set([tuple(el if i == 0 else tuple(el) for i, el in enumerate(e)) for e in test]))
-
-'524901' in df['geonamesID.value']
-
-set(df[df['placeLabel.value'] == 'Moskwa']['geonamesID.value'].to_list())
-
-
-test = df['geonamesID.value'].to_list()
-
-print(test[0])
-
-
-
-places = set([e for sub in places for e in sub])
-# sprawdzić wyrywkowo rzeczy w []
-
-# test = [e for e in places if any(x in e for x in ['[', ']'])]
-
-places = set([e.replace('[etc.]', '').replace('[!]', '') for e in places])
-places = set([''.join([l for l in el if l.isalnum() or l in['-', ' ', '(', ')']]).strip() for el in places])
-
-
-# Load data (deserialize)
-with open('filename.pickle', 'rb') as handle:
-    unserialized_data = pickle.load(handle)
-
-
-
-test[2]
-
-
-
-
-for e in test:
-    [marc_parser_dict_for_field(el, '\\$') for el in e.get('260')]
+#4 reszta?
+test_dict = {'1 wiersz': pd.DataFrame(),
+             'więcej wierszy i daty puste': pd.DataFrame(),
+             'są daty': pd.DataFrame(),
+             'reszta': pd.DataFrame()}
+grouped = final_df.groupby('place.value')  
+for name, group in tqdm(grouped, total=len(grouped)):  
+    if len(group) == 1:
+        test_dict['1 wiersz'] = pd.concat([test_dict['1 wiersz'], group])
+    elif not [e for sub in group[date_cols].values.tolist() for e in sub if pd.notnull(e)]:
+        test_dict['więcej wierszy i daty puste'] = pd.concat([test_dict['więcej wierszy i daty puste'], group])
+    elif [e for sub in group[date_cols].values.tolist() for e in sub if pd.notnull(e)]:
+        test_dict['są daty'] = pd.concat([test_dict['są daty'], group])
+    else:
+        test_dict['reszta'] = pd.concat([test_dict['reszta'], group])
     
     
-[[marc_parser_dict_for_field(el, '\\$') for el in e.get('260')] for e in test]
-
-record_places = [marc_parser_dict_for_field(e, '\\$') for e in record.get('260')]
-record_places = [[e.get('$a') for e in el if '$a' in e] for el in record_places]
-record_places = [e for sub in record_places for e in sub]
-places.append(record_places)
-
-#dodać do słownika nazwę
-# zrobić słownik nazw
-# dodać identyfikator nazwy do rekordu, żeby mieć powiązanie
-# poszukać, jak zrobiłem próbkę kartoteki miejsc: C:\Users\Cezary\Documents\SPUB-project\SPUB_query_wikidata.py -- tu jest droga z wikidaty
-
-# dodać też miejsca z osób: urodzenie + śmierć
-
-test[0]
-
-test[0].update()
-
-{'001': ['b0000002769128'],
- '008': ['130220s2013\\\\\\\\ru\\\\\\\\\\\\\\\\\\\\\\|000\\0\\ruso\\'],
- '260': ['\\\\$aMoskva :$b"Centr knigi Rudomino",$c2011.'],
- 'country_marc_code': 'ru',
- 'country': 'Russia',
- 'place_name': 'Moskva'
- }
-
-MARC_code	MARC_name	iso_alpha_2	Geonames_name
-
-ru	Russia (Federation)	RU	Russia
-
-
-# test = [e for e in records if '773' in e]
-# test[0]
-
-places = []
-for record in tqdm(records):
-
-    record_places = [marc_parser_dict_for_field(e, '\\$') for e in record.get('260')]
-    record_places = [[e.get('$a') for e in el if '$a' in e] for el in record_places]
-    record_places = [e for sub in record_places for e in sub]
-    places.append(record_places)
-    
-places = set([e for sub in places for e in sub])
-# sprawdzić wyrywkowo rzeczy w []
-
-# test = [e for e in places if any(x in e for x in ['[', ']'])]
-
-places = set([e.replace('[etc.]', '').replace('[!]', '') for e in places])
-places = set([''.join([l for l in el if l.isalnum() or l in['-', ' ', '(', ')']]).strip() for el in places])
+    test_df = [e for sub in group[date_cols].values.tolist() for e in sub if pd.notnull(e)]
+    if not test_df:
+        miejsca_bez_dat_df = pd.concat([miejsca_bez_dat_df, group])
 
 
 
@@ -364,28 +370,17 @@ places = set([''.join([l for l in el if l.isalnum() or l in['-', ' ', '(', ')']]
 
 
 
-[etc.]
-[!]
-
-
-''.join([e for e in list(test)[1] if e.isalnum() or e == ''])
-
-dir('a')
-
-name_in_question = "albinany"
-for allowed in allowed_names: # you would probably want to narrow the allowed names list down based on other data or the first charater
-    percent_match_to_allowed = fuzz.ratio(allowed, name_in_question)
-    if percent_match_to_allowed > 90:
-         name_in_question = allowed
-
-
-test = [simplify_string(e, with_spaces=True, nodiacritics=False) for e in test]
-
-
-[e.get('$a') for e in test if '$a' in e]
-
-[[el['$a'].replace('-','').strip().split(' ')[0] for el in marc_parser_dict_for_field(e, '\$') if '$a' in el]
 
 
 
-marc21_records = read_MARC21('bn_harvested_2021_05_12.mrk')
+
+
+
+
+
+
+
+
+
+
+

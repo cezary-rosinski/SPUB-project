@@ -2,7 +2,7 @@ import sys
 sys.path.insert(1, 'C:/Users/Cezary/Documents/IBL-PAN-Python')
 from SPUB_importer_read_data import read_MARC21
 from SPUB_query_wikidata import wikidata_simple_dict_resp
-from my_functions import marc_parser_dict_for_field, simplify_string, gsheet_to_df
+from my_functions import marc_parser_dict_for_field, simplify_string, gsheet_to_df, create_google_worksheet
 from tqdm import tqdm
 import fuzzywuzzy
 import pandas as pd
@@ -21,6 +21,10 @@ import time
 from geonames_accounts import geonames_users
 import random
 from collections import Counter
+from pydrive.auth import GoogleAuth
+from pydrive.drive import GoogleDrive
+import gspread as gs
+import datetime
 
 #%%def
 def read_mrk(path):
@@ -334,6 +338,19 @@ for name, group in tqdm(grouped, total=len(grouped)):
         group = group.loc[group['placeLabel.xml:lang'] == 'pl']
     final_df = pd.concat([final_df, group])
 final_df = final_df.reset_index(drop=True)    
+
+grouped = final_df.groupby('place.value')
+final_df = pd.DataFrame()
+for name, group in tqdm(grouped, total=len(grouped)):
+    # name = 'http://www.wikidata.org/entity/Q1001326'
+    # group = grouped.get_group(name)
+    if [e for e in group['coordinates.value'].to_list() if pd.notnull(e)] and [e for e in group['geonamesID.value'].to_list() if pd.notnull(e)]:
+        group = group.loc[group['coordinates.value'] == min(set(group['coordinates.value'].to_list()))]
+        group = group.loc[group['geonamesID.value'] == min(set(group['geonamesID.value'].to_list()))]
+    final_df = pd.concat([final_df, group])
+final_df = final_df.reset_index(drop=True)
+
+
     
 #1 wiersz są okej
 
@@ -343,25 +360,61 @@ final_df = final_df.reset_index(drop=True)
 
 #4 reszta?
 test_dict = {'1 wiersz': pd.DataFrame(),
+             'jeden geonames, jeden point, daty country': pd.DataFrame(),
              'więcej wierszy i daty puste': pd.DataFrame(),
-             'są daty': pd.DataFrame(),
-             'reszta': pd.DataFrame()}
+             'są daty': pd.DataFrame()}
 grouped = final_df.groupby('place.value')  
-for name, group in tqdm(grouped, total=len(grouped)):  
+for name, group in tqdm(grouped, total=len(grouped)): 
+    # group = test_dict.get('są daty')[3:98]
     if len(group) == 1:
         test_dict['1 wiersz'] = pd.concat([test_dict['1 wiersz'], group])
+    elif group.drop(columns='coordinates.value').drop_duplicates().shape[0] == 1 and len(group['coordinates.value'].unique()) > 1:
+        group = group.head(1)
+        test_dict['1 wiersz'] = pd.concat([test_dict['1 wiersz'], group])
+    elif group.drop(columns='geonamesID.value').drop_duplicates().shape[0] == 1 and len(group['geonamesID.value'].unique()) > 1:
+        group = group.nsmallest(1, 'geonamesID.value')
+        test_dict['1 wiersz'] = pd.concat([test_dict['1 wiersz'], group])
+    elif group.drop(columns=['geonamesID.value', 'coordinates.value']).drop_duplicates().shape[0] == 1 and len(group['geonamesID.value'].unique()) > 1 and len(group['coordinates.value'].unique()) > 1:
+        group = group.nsmallest(1, 'geonamesID.value')
+        test_dict['1 wiersz'] = pd.concat([test_dict['1 wiersz'], group])
+    elif len(group['geonamesID.value'].unique()) == 1 and len(group['coordinates.value'].unique()) == 1 and [e for sub in group[['countryStarttime.value', 'countryEndtime.value']].values.tolist() for e in sub if pd.notnull(e)] and not [e for sub in group[['officialNameStarttime.value', 'officialNameEndtime.value']].values.tolist() for e in sub if pd.notnull(e)]:
+        test_dict['jeden geonames, jeden point, daty country'] = pd.concat([test_dict['jeden geonames, jeden point, daty country'], group])
     elif not [e for sub in group[date_cols].values.tolist() for e in sub if pd.notnull(e)]:
-        test_dict['więcej wierszy i daty puste'] = pd.concat([test_dict['więcej wierszy i daty puste'], group])
+        test = group.drop(columns=['names.xml:lang','names.value']).drop_duplicates()
+        unique_pl = list(set(group['names.value'].to_list()))
+        test['dodatkowe pl'] = test.apply(lambda x: unique_pl, axis=1)
+        test_dict['więcej wierszy i daty puste'] = pd.concat([test_dict['więcej wierszy i daty puste'], test])
     elif [e for sub in group[date_cols].values.tolist() for e in sub if pd.notnull(e)]:
-        test_dict['są daty'] = pd.concat([test_dict['są daty'], group])
-    else:
-        test_dict['reszta'] = pd.concat([test_dict['reszta'], group])
-    
-    
-    test_df = [e for sub in group[date_cols].values.tolist() for e in sub if pd.notnull(e)]
-    if not test_df:
-        miejsca_bez_dat_df = pd.concat([miejsca_bez_dat_df, group])
+        test = group.drop(columns=['names.xml:lang','names.value']).drop_duplicates()
+        unique_pl = tuple(set(group['names.value'].to_list()))
+        test['dodatkowe pl'] = test.apply(lambda x: unique_pl, axis=1)
+        test_dict['są daty'] = pd.concat([test_dict['są daty'], test])
+        
+        test = group.drop(columns=['officialName.xml:lang', 'officialName.value', 'officialNameStarttime.value', 'officialNameEndtime.value']).drop_duplicates()
+        test['countryStarttime.value'] = test['countryStarttime.value'].apply(lambda x: datetime.datetime.strptime(x, '%Y-%m-%dT%H:%M:%SZ').date() if pd.notnull(x) else x)
+        test = test.sort_values('countryStarttime.value')
+        
+        ttt = group[['officialName.xml:lang', 'officialName.value', 'officialNameStarttime.value', 'officialNameEndtime.value']].drop_duplicates().to_dict(orient='index')
+        ttt = tuple(ttt.values())
+        test['xxx'] = test.apply(lambda x: ttt, axis=1)
+        
+#CEL
+#wydobyć wszystkie państwa, które nie mają polskiej wersji, przetłumaczyć je i dodać
+#połączyć te odcinki czasu dla nazw oficjalnych, które korespondują z przynależnością do państwa i na wypełnić tylko te wiersze w tabeli, w których zachodzi taka relacja
 
+datetime.datetime.strptime('1867-03-30T00:00:00Z', '%Y-%m-%dT%H:%M:%SZ').date()
+        group.columns.values
+
+#%% google sheets upload
+gc = gs.oauth()
+gauth = GoogleAuth()
+gauth.LocalWebserverAuth()
+drive = GoogleDrive(gauth)
+
+sheet = gc.create('SPUB – kartoteka miejsc – prace manualne', '1gafJy33s2zE_yOBxCYS3zRvWCCVvhqib')
+
+for k,v in test_dict.items():
+    create_google_worksheet(sheet.id, k, v)
 
 
 

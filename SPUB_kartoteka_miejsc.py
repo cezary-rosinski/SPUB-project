@@ -25,6 +25,7 @@ from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
 import gspread as gs
 import datetime
+import pydeepl
 
 #%%def
 def read_mrk(path):
@@ -318,7 +319,7 @@ df = pd.concat([pd.DataFrame(e) for e in places_dict.values()])
 df = df[wiki_columns]
 df.to_excel('SPUB_miejsca_z_osob.xlsx', index=False) 
 
-#%% przetwarzanie kartoteki miejsc
+#%% uzupełnienie wikidaty
 
 df = pd.read_excel('SPUB_miejsca_z_osob.xlsx')
 
@@ -349,8 +350,37 @@ for name, group in tqdm(grouped, total=len(grouped)):
         group = group.loc[group['geonamesID.value'] == min(set(group['geonamesID.value'].to_list()))]
     final_df = pd.concat([final_df, group])
 final_df = final_df.reset_index(drop=True)
+final_df = final_df.loc[final_df['place.value'] != 'http://www.wikidata.org/entity/Q2809472']
 
+# missing_countries = [e for e in final_df.loc[final_df['countryLabel.xml:lang'].isna()]['countryLabel.value'].unique() if pd.notnull(e) and e.startswith('Q')]
+# wikidata_countries_dict = {}
+# for wikidata_id in tqdm(missing_countries):
+#     # wikidata_id = missing_countries[0]
+#     url = f'https://www.wikidata.org/wiki/Special:EntityData/{wikidata_id}.json'
+#     result = requests.get(url).json()
+#     try:
+#         country_label_en = result.get('entities').get(wikidata_id).get('labels').get('en').get('value')
+#         country_label_pl = ts.google(country_label_en, from_language='en', to_language='pl')
+#         wikidata_countries_dict.update({wikidata_id:{'country_label_foreign':country_label_en, 'country_label_pl': country_label_pl}})
+#     except AttributeError:
+#         country_label_ru = result.get('entities').get(wikidata_id).get('labels').get('ru').get('value')
+#         country_label_pl = ts.google(country_label_ru, from_language='ru', to_language='pl')
+#         wikidata_countries_dict.update({wikidata_id:{'country_label_foreign':country_label_ru, 'country_label_pl': country_label_pl}})
 
+# df = pd.DataFrame().from_dict(wikidata_countries_dict, orient='index')
+# df.to_excel('brakujące_państwa.xlsx')
+
+missing_countries = pd.read_excel('brakujące_państwa.xlsx').to_dict(orient='index')
+missing_countries = {v.get('wikidata_id'):v.get('country_label_pl') for k,v in missing_countries.items()}
+
+final_df['countryLabel.value'] = final_df['countryLabel.value'].apply(lambda x: missing_countries.get(x) if x in missing_countries else x)
+final_df['countryLabel.xml:lang'] = final_df['countryLabel.value'].apply(lambda x: 'pl' if pd.notnull(x) else x)
+
+final_df.to_excel('SPUB_miejsca_z_osob.xlsx', index=False) 
+
+#%% 
+
+df = pd.read_excel('SPUB_miejsca_z_osob.xlsx')
     
 #1 wiersz są okej
 
@@ -389,7 +419,7 @@ for name, group in tqdm(grouped, total=len(grouped)):
         unique_pl = tuple(set(group['names.value'].to_list()))
         test['dodatkowe pl'] = test.apply(lambda x: unique_pl, axis=1)
         test_dict['są daty'] = pd.concat([test_dict['są daty'], test])
-        
+#      
         test = group.drop(columns=['officialName.xml:lang', 'officialName.value', 'officialNameStarttime.value', 'officialNameEndtime.value']).drop_duplicates()
         test['countryStarttime.value'] = test['countryStarttime.value'].apply(lambda x: datetime.datetime.strptime(x, '%Y-%m-%dT%H:%M:%SZ').date() if pd.notnull(x) else x)
         test = test.sort_values('countryStarttime.value')

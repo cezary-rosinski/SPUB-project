@@ -12,7 +12,7 @@ from SPUB_importer_query_national_library import return_people_dict_bn
 from SPUB_query_wikidata import query_wikidata, query_wikidata_for_country, query_wikidata_person_with_viaf
 from SPUB_stack_in_db import create_db
 from SPUB_XML_file_people import create_person
-from SPUB_XML_file_places import create_xml_places_from_gsheet
+from SPUB_XML_file_places import create_xml_places_from_gsheet, create_node_structure
 import pandas as pd
 from tqdm import tqdm
 import json
@@ -210,7 +210,7 @@ with open('places_wikidata.json', 'w', encoding='utf-8') as f:
     json.dump(places_from_people_wikidata, f)        
                       
 
-#main
+#%%main
 
 with open('import_people.json') as json_file:
     people_list_of_dicts = json.load(json_file)
@@ -454,11 +454,14 @@ tree.write('import_people.xml', encoding='UTF-8')
 
 
 #02.08.2021
-# kartoteka miejsc
+#%% kartoteka miejsc
 xml_nodes = create_node_structure(['pbl', 'files', 'places'])
-list_of_places = create_xml_places_from_gsheet('1Ruu8fa-wzZ2fwj86S4UhWn_J3_xREjaw_B-P_B7OOvs', 'out', xml_nodes['places'])
+
+# list_of_places = create_xml_places_from_gsheet('1Ruu8fa-wzZ2fwj86S4UhWn_J3_xREjaw_B-P_B7OOvs', 'out', xml_nodes['places'])
+list_of_places = create_xml_places_from_gsheet('109-0UT-wJzZ8HVP9OwEy953T2tD51DCecfNryRQ3wKA', 'out', xml_nodes['places'])
 tree = ET.ElementTree(xml_nodes['pbl'])
-tree.write('import_places.xml', encoding='UTF-8')
+ET.indent(tree, space="\t", level=0)
+tree.write('import_places_full.xml', encoding='UTF-8')
 
 # test = [e for e in places_from_people if e not in [a['id'] for a in list_of_places]]
 

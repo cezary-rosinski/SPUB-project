@@ -8,6 +8,7 @@ from my_functions import gsheet_to_df
 import ast
 import pandas as pd
 import numpy as np
+from geojson import Point
 
 
 # for k, v in ttt.items():
@@ -89,9 +90,15 @@ place_dict = {'place name': 'name',
               'country name lang': 'lang'}
 
     
-def create_xml_places_from_gsheet(gsheetID, worksheet, parent):    
+def create_xml_places_from_gsheet(gsheetID, worksheet, parent):   
+    gsheetID = '109-0UT-wJzZ8HVP9OwEy953T2tD51DCecfNryRQ3wKA'
+    worksheet = 'out'
     df = gsheet_to_df(gsheetID, worksheet)
-    df['koordynaty'] = df['koordynaty'].apply(lambda x: ast.literal_eval(x) if pd.notnull(x) else np.nan)
+    try:
+        df['koordynaty'] = df['koordynaty'].apply(lambda x: ast.literal_eval(x) if pd.notnull(x) else np.nan)
+    except SyntaxError:
+        df['koordynaty'] = df['koordynaty'].str.replace(' ', ',')
+        df['koordynaty'] = df['koordynaty'].apply(lambda x: Point(ast.literal_eval(x.replace('Point',''))) if pd.notnull(x) else np.nan)
     df['lat'], df['lon'] = zip(*df['koordynaty'].apply(lambda x: x['coordinates'] if pd.notnull(x) else (np.nan, np.nan)))
     # df = df.replace(np.nan, '', regex=True)
     df['date-from'] = df['date-from'].apply(lambda x: re.sub('(.+)(T.*)', r'\1', x) if pd.notnull(x) else '')

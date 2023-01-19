@@ -1,0 +1,51 @@
+<pbl>
+	<files>
+		<places>
+			<place id="http://www.wikidata.org/entity/Q1781" lat="47.4983" lon="19.0408" geonames="">
+				<period date_from="" date_to="">
+					<name lang="pl">Budapeszt</name>
+				</period>
+			</place>
+			<place id="http://www.wikidata.org/entity/Q36036" lat="49.8425" lon="24.0322" geonames="">
+				<period date_from="" date_to="">
+					<name lang="pl">Lwów</name>
+				</period>
+			</place>
+			<place id="http://www.wikidata.org/entity/Q31487" lat="50.0614" lon="19.9372" geonames="">
+				<period date_from="" date_to="">
+					<name lang="pl">Kraków</name>
+				</period>
+			</place>
+			<place id="http://www.wikidata.org/entity/Q649" lat="55.7558" lon="37.6178" geonames="">
+				<period date_from="" date_to="">
+					<name lang="pl">Moskwa</name>
+				</period>
+			</place>
+			<place id="http://www.wikidata.org/entity/fake0" lat="44.0359" lon="10.1396" geonames="">
+				<period date_from="" date_to="">
+					<name lang="pl">Massa</name>
+				</period>
+			</place>
+			<place id="http://www.wikidata.org/entity/Q270" lat="52.23" lon="21.0111" geonames="">
+				<period date_from="" date_to="">
+					<name lang="pl">Warszawa</name>
+				</period>
+			</place>
+			<place id="http://www.wikidata.org/entity/Q220" lat="41.8931" lon="12.4828" geonames="">
+				<period date_from="" date_to="">
+					<name lang="pl">Rzym</name>
+				</period>
+			</place>
+			<place id="http://www.wikidata.org/entity/Q3711" lat="44.8178" lon="20.4569" geonames="">
+				<period date_from="" date_to="">
+					<name lang="pl">Belgrad</name>
+				</period>
+			</place>
+			<place id="http://www.wikidata.org/entity/Q472" lat="42.6979" lon="23.3217" geonames="">
+				<period date_from="" date_to="">
+					<name lang="pl">Sofia</name>
+				</period>
+			</place>
+		</places>
+	</files>
+</pbl>

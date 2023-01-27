@@ -4,15 +4,9 @@ from concurrent.futures import ThreadPoolExecutor
 from tqdm import tqdm
 import xml.etree.cElementTree as ET
 from datetime import datetime
+from SPUB_functions import give_fake_id
 
-#%% def
 
-def give_fake_id(places):
-    fake_id = 0
-    for pl in places:
-        if pl.id.endswith(('Q', 'QNone')):
-            pl.id = f"http://www.wikidata.org/entity/fake{fake_id}"
-            fake_id += 1
 
 #%% main
 

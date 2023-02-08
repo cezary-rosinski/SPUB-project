@@ -1,0 +1,82 @@
+<pbl>
+	<files>
+		<institutions>
+			<institution id="http://www.wikidata.org/entity/fake0" status="published" creator="cezary_rosinski" creation-date="2023-02-08" publishing-date="2023-02-08">
+				<history>
+					<period>
+						<names>
+							<name type="base" newest="true">Wydawnictwo Literackie</name>
+						</names>
+					</period>
+				</history>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<newest_name>Wydawnictwo Literackie</newest_name>
+			</institution>
+			<institution id="http://www.wikidata.org/entity/Q4050399" status="published" creator="cezary_rosinski" creation-date="2023-02-08" publishing-date="2023-02-08" viaf="https://viaf.org/viaf/296584340">
+				<links>
+					<link access-date="2023-02-08" type="external-identifier">http://www.wikidata.org/entity/Q4050399</link>
+					<link access-date="2023-02-08" type="external-identifier">https://viaf.org/viaf/296584340</link>
+				</links>
+				<history>
+					<period>
+						<names>
+							<name type="base" newest="true">SuperNowa</name>
+						</names>
+					</period>
+				</history>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<newest_name>SuperNowa</newest_name>
+			</institution>
+			<institution id="http://www.wikidata.org/entity/fake1" status="published" creator="cezary_rosinski" creation-date="2023-02-08" publishing-date="2023-02-08" viaf="https://viaf.org/viaf/309871593">
+				<links>
+					<link access-date="2023-02-08" type="external-identifier">https://viaf.org/viaf/309871593</link>
+				</links>
+				<history>
+					<period>
+						<names>
+							<name type="base" newest="true">Code Red Tomasz Stachewicz</name>
+						</names>
+					</period>
+				</history>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<newest_name>Code Red Tomasz Stachewicz</newest_name>
+			</institution>
+			<institution id="http://www.wikidata.org/entity/Q3997495" status="published" creator="cezary_rosinski" creation-date="2023-02-08" publishing-date="2023-02-08" viaf="https://viaf.org/viaf/8744152865674904940005">
+				<links>
+					<link access-date="2023-02-08" type="external-identifier">http://www.wikidata.org/entity/Q3997495</link>
+					<link access-date="2023-02-08" type="external-identifier">https://viaf.org/viaf/8744152865674904940005</link>
+				</links>
+				<history>
+					<period>
+						<names>
+							<name type="base" newest="true">Transeuropa Edizioni</name>
+						</names>
+					</period>
+				</history>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<newest_name>Transeuropa Edizioni</newest_name>
+			</institution>
+			<institution id="http://www.wikidata.org/entity/fake2" status="published" creator="cezary_rosinski" creation-date="2023-02-08" publishing-date="2023-02-08">
+				<history>
+					<period>
+						<names>
+							<name type="base" newest="true">Wydział Humanistyczny (Uniwersytet Warmińsko-Mazurski ; Olsztyn)</name>
+						</names>
+					</period>
+				</history>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<newest_name>Wydział Humanistyczny (Uniwersytet Warmińsko-Mazurski ; Olsztyn)</newest_name>
+			</institution>
+		</institutions>
+	</files>
+</pbl>

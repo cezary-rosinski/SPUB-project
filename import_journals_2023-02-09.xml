@@ -1,0 +1,766 @@
+<pbl>
+	<files>
+		<journals>
+			<journal id="http://www.wikidata.org/entity/fake0" status="source" creator="cezary_rosinski" creation-date="2023-02-09" publishing-date="2023-02-09">
+				<titles without-title="false">
+					<title type="base" lang="pl" principal="true" transliteration="false">Ruch Literacki</title>
+				</titles>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<issn>0035-9602</issn>
+				<status id="source" />
+			</journal>
+			<journal id="http://www.wikidata.org/entity/fake1" status="source" creator="cezary_rosinski" creation-date="2023-02-09" publishing-date="2023-02-09">
+				<titles without-title="false">
+					<title type="base" lang="pl" principal="true" transliteration="false">Słupskie Prace Filologiczne. Seria Filologia Polska</title>
+				</titles>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<issn>1643-4668</issn>
+				<status id="source" />
+			</journal>
+			<journal id="http://www.wikidata.org/entity/fake2" status="source" creator="cezary_rosinski" creation-date="2023-02-09" publishing-date="2023-02-09">
+				<titles without-title="false">
+					<title type="base" lang="pl" principal="true" transliteration="false">Ciechanowskie Zeszyty Literackie</title>
+				</titles>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<issn>1733-0483</issn>
+				<status id="source" />
+			</journal>
+			<journal id="http://www.wikidata.org/entity/fake3" status="source" creator="cezary_rosinski" creation-date="2023-02-09" publishing-date="2023-02-09">
+				<titles without-title="false">
+					<title type="base" lang="pl" principal="true" transliteration="false">Kieleckie Studia Filologiczne</title>
+				</titles>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<issn>0208-5976</issn>
+				<status id="source" />
+			</journal>
+			<journal id="http://www.wikidata.org/entity/fake4" status="source" creator="cezary_rosinski" creation-date="2023-02-09" publishing-date="2023-02-09">
+				<titles without-title="false">
+					<title type="base" lang="pl" principal="true" transliteration="false">Ojczyzna Polszczyzna</title>
+				</titles>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<issn />
+				<status id="source" />
+			</journal>
+			<journal id="http://www.wikidata.org/entity/fake5" status="source" creator="cezary_rosinski" creation-date="2023-02-09" publishing-date="2023-02-09">
+				<titles without-title="false">
+					<title type="base" lang="pl" principal="true" transliteration="false">Rota</title>
+				</titles>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<issn />
+				<status id="source" />
+			</journal>
+			<journal id="http://www.wikidata.org/entity/fake6" status="source" creator="cezary_rosinski" creation-date="2023-02-09" publishing-date="2023-02-09">
+				<titles without-title="false">
+					<title type="base" lang="pl" principal="true" transliteration="false">Akta Towarzystwa Historyczno-Literackiego w Paryżu = Actes de la Societe Historique et Litteraire Polonaise</title>
+				</titles>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<issn />
+				<status id="source" />
+			</journal>
+			<journal id="http://www.wikidata.org/entity/fake7" status="source" creator="cezary_rosinski" creation-date="2023-02-09" publishing-date="2023-02-09">
+				<titles without-title="false">
+					<title type="base" lang="pl" principal="true" transliteration="false">Aneks Trybuny</title>
+				</titles>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<issn>1429-1193</issn>
+				<status id="source" />
+			</journal>
+			<journal id="http://www.wikidata.org/entity/fake8" status="source" creator="cezary_rosinski" creation-date="2023-02-09" publishing-date="2023-02-09">
+				<titles without-title="false">
+					<title type="base" lang="pl" principal="true" transliteration="false">Film</title>
+				</titles>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<issn />
+				<status id="source" />
+			</journal>
+			<journal id="http://www.wikidata.org/entity/fake9" status="source" creator="cezary_rosinski" creation-date="2023-02-09" publishing-date="2023-02-09">
+				<titles without-title="false">
+					<title type="base" lang="pl" principal="true" transliteration="false">Kwartalnik Filmowy</title>
+				</titles>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<issn>0452-9502</issn>
+				<status id="source" />
+			</journal>
+			<journal id="http://www.wikidata.org/entity/fake10" status="source" creator="cezary_rosinski" creation-date="2023-02-09" publishing-date="2023-02-09">
+				<titles without-title="false">
+					<title type="base" lang="pl" principal="true" transliteration="false">Nasz Dziennik</title>
+				</titles>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<issn />
+				<status id="source" />
+			</journal>
+			<journal id="http://www.wikidata.org/entity/fake11" status="source" creator="cezary_rosinski" creation-date="2023-02-09" publishing-date="2023-02-09">
+				<titles without-title="false">
+					<title type="base" lang="pl" principal="true" transliteration="false">Orbis Linguarum</title>
+				</titles>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<issn>1426-7241</issn>
+				<status id="source" />
+			</journal>
+			<journal id="http://www.wikidata.org/entity/fake12" status="source" creator="cezary_rosinski" creation-date="2023-02-09" publishing-date="2023-02-09">
+				<titles without-title="false">
+					<title type="base" lang="pl" principal="true" transliteration="false">Siódma Prowincja</title>
+				</titles>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<issn>0867-4469</issn>
+				<status id="source" />
+			</journal>
+			<journal id="http://www.wikidata.org/entity/fake13" status="source" creator="cezary_rosinski" creation-date="2023-02-09" publishing-date="2023-02-09">
+				<titles without-title="false">
+					<title type="base" lang="pl" principal="true" transliteration="false">Sprawozdania z Czynności i Posiedzeń Naukowych [Łódzkie Towarzystwo Naukowe]</title>
+				</titles>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<issn />
+				<status id="source" />
+			</journal>
+			<journal id="http://www.wikidata.org/entity/fake14" status="source" creator="cezary_rosinski" creation-date="2023-02-09" publishing-date="2023-02-09">
+				<titles without-title="false">
+					<title type="base" lang="pl" principal="true" transliteration="false">Wiadomości Kulturalne</title>
+				</titles>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<issn>1231-840X</issn>
+				<status id="source" />
+			</journal>
+			<journal id="http://www.wikidata.org/entity/fake15" status="source" creator="cezary_rosinski" creation-date="2023-02-09" publishing-date="2023-02-09">
+				<titles without-title="false">
+					<title type="base" lang="pl" principal="true" transliteration="false">Związkowiec = The Alliancer</title>
+				</titles>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<issn />
+				<status id="source" />
+			</journal>
+			<journal id="http://www.wikidata.org/entity/fake16" status="source" creator="cezary_rosinski" creation-date="2023-02-09" publishing-date="2023-02-09">
+				<titles without-title="false">
+					<title type="base" lang="pl" principal="true" transliteration="false">Zwrot</title>
+				</titles>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<issn />
+				<status id="source" />
+			</journal>
+			<journal id="http://www.wikidata.org/entity/fake17" status="source" creator="cezary_rosinski" creation-date="2023-02-09" publishing-date="2023-02-09">
+				<titles without-title="false">
+					<title type="base" lang="pl" principal="true" transliteration="false">Życie</title>
+				</titles>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<issn />
+				<status id="source" />
+			</journal>
+			<journal id="http://www.wikidata.org/entity/fake18" status="source" creator="cezary_rosinski" creation-date="2023-02-09" publishing-date="2023-02-09">
+				<titles without-title="false">
+					<title type="base" lang="pl" principal="true" transliteration="false">Acta Universitatis Lodziensis. Folia Litteraria Polonica</title>
+				</titles>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<issn>1505-9057</issn>
+				<status id="source" />
+			</journal>
+			<journal id="http://www.wikidata.org/entity/fake19" status="source" creator="cezary_rosinski" creation-date="2023-02-09" publishing-date="2023-02-09">
+				<titles without-title="false">
+					<title type="base" lang="pl" principal="true" transliteration="false">Acta Universitatis Wratislaviensis. Prace Literackie</title>
+				</titles>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<issn>0079-4767</issn>
+				<status id="source" />
+			</journal>
+			<journal id="http://www.wikidata.org/entity/fake20" status="source" creator="cezary_rosinski" creation-date="2023-02-09" publishing-date="2023-02-09">
+				<titles without-title="false">
+					<title type="base" lang="pl" principal="true" transliteration="false">Annales Academiae Paedagogicae Cracoviensis. Studia Historicolitteraria</title>
+				</titles>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<issn>1644-1885</issn>
+				<status id="source" />
+			</journal>
+			<journal id="http://www.wikidata.org/entity/fake21" status="source" creator="cezary_rosinski" creation-date="2023-02-09" publishing-date="2023-02-09">
+				<titles without-title="false">
+					<title type="base" lang="pl" principal="true" transliteration="false">Annales Academiae Paedagogicae Cracoviensis. Studia Romanica</title>
+				</titles>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<issn>1643-6520</issn>
+				<status id="source" />
+			</journal>
+			<journal id="http://www.wikidata.org/entity/fake22" status="source" creator="cezary_rosinski" creation-date="2023-02-09" publishing-date="2023-02-09">
+				<titles without-title="false">
+					<title type="base" lang="pl" principal="true" transliteration="false">Antena</title>
+				</titles>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<issn />
+				<status id="source" />
+			</journal>
+			<journal id="http://www.wikidata.org/entity/fake23" status="source" creator="cezary_rosinski" creation-date="2023-02-09" publishing-date="2023-02-09">
+				<titles without-title="false">
+					<title type="base" lang="pl" principal="true" transliteration="false">Arcana</title>
+				</titles>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<issn />
+				<status id="source" />
+			</journal>
+			<journal id="http://www.wikidata.org/entity/fake24" status="source" creator="cezary_rosinski" creation-date="2023-02-09" publishing-date="2023-02-09">
+				<titles without-title="false">
+					<title type="base" lang="pl" principal="true" transliteration="false">Bibliotekarz Płocki</title>
+				</titles>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<issn>1234-1215</issn>
+				<status id="source" />
+			</journal>
+			<journal id="http://www.wikidata.org/entity/fake25" status="source" creator="cezary_rosinski" creation-date="2023-02-09" publishing-date="2023-02-09">
+				<titles without-title="false">
+					<title type="base" lang="pl" principal="true" transliteration="false">Bibliotekarz</title>
+				</titles>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<issn>0208-4333</issn>
+				<status id="source" />
+			</journal>
+			<journal id="http://www.wikidata.org/entity/fake26" status="source" creator="cezary_rosinski" creation-date="2023-02-09" publishing-date="2023-02-09">
+				<titles without-title="false">
+					<title type="base" lang="pl" principal="true" transliteration="false">Biblioteka</title>
+				</titles>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<issn />
+				<status id="source" />
+			</journal>
+			<journal id="http://www.wikidata.org/entity/fake27" status="source" creator="cezary_rosinski" creation-date="2023-02-09" publishing-date="2023-02-09">
+				<titles without-title="false">
+					<title type="base" lang="pl" principal="true" transliteration="false">Biuletyn Polonistyczny</title>
+				</titles>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<issn>0067-902X</issn>
+				<status id="source" />
+			</journal>
+			<journal id="http://www.wikidata.org/entity/fake28" status="source" creator="cezary_rosinski" creation-date="2023-02-09" publishing-date="2023-02-09">
+				<titles without-title="false">
+					<title type="base" lang="pl" principal="true" transliteration="false">Dziennik Kijowski</title>
+				</titles>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<issn />
+				<status id="source" />
+			</journal>
+			<journal id="http://www.wikidata.org/entity/fake29" status="source" creator="cezary_rosinski" creation-date="2023-02-09" publishing-date="2023-02-09">
+				<titles without-title="false">
+					<title type="base" lang="pl" principal="true" transliteration="false">Dziennik Polski i Dziennik Żołnierza = The Polish Daily and Soldiers Daily</title>
+				</titles>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<issn />
+				<status id="source" />
+			</journal>
+			<journal id="http://www.wikidata.org/entity/fake30" status="source" creator="cezary_rosinski" creation-date="2023-02-09" publishing-date="2023-02-09">
+				<titles without-title="false">
+					<title type="base" lang="pl" principal="true" transliteration="false">Echo Dnia</title>
+				</titles>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<issn />
+				<status id="source" />
+			</journal>
+			<journal id="http://www.wikidata.org/entity/fake31" status="source" creator="cezary_rosinski" creation-date="2023-02-09" publishing-date="2023-02-09">
+				<titles without-title="false">
+					<title type="base" lang="pl" principal="true" transliteration="false">Fantastyka</title>
+				</titles>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<issn>1165-7871</issn>
+				<status id="source" />
+			</journal>
+			<journal id="http://www.wikidata.org/entity/fake32" status="source" creator="cezary_rosinski" creation-date="2023-02-09" publishing-date="2023-02-09">
+				<titles without-title="false">
+					<title type="base" lang="pl" principal="true" transliteration="false">Gazeta Niedzielna</title>
+				</titles>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<issn>1358-832X</issn>
+				<status id="source" />
+			</journal>
+			<journal id="http://www.wikidata.org/entity/fake33" status="source" creator="cezary_rosinski" creation-date="2023-02-09" publishing-date="2023-02-09">
+				<titles without-title="false">
+					<title type="base" lang="pl" principal="true" transliteration="false">Gazeta Wyborcza</title>
+				</titles>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<issn>0860-908X</issn>
+				<status id="source" />
+			</journal>
+			<journal id="http://www.wikidata.org/entity/fake34" status="source" creator="cezary_rosinski" creation-date="2023-02-09" publishing-date="2023-02-09">
+				<titles without-title="false">
+					<title type="base" lang="pl" principal="true" transliteration="false">Gazeta. Magazyn</title>
+				</titles>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<issn />
+				<status id="source" />
+			</journal>
+			<journal id="http://www.wikidata.org/entity/fake35" status="source" creator="cezary_rosinski" creation-date="2023-02-09" publishing-date="2023-02-09">
+				<titles without-title="false">
+					<title type="base" lang="pl" principal="true" transliteration="false">Gwiazda Polarna</title>
+				</titles>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<issn />
+				<status id="source" />
+			</journal>
+			<journal id="http://www.wikidata.org/entity/fake36" status="source" creator="cezary_rosinski" creation-date="2023-02-09" publishing-date="2023-02-09">
+				<titles without-title="false">
+					<title type="base" lang="pl" principal="true" transliteration="false">Głos Ludu</title>
+				</titles>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<issn />
+				<status id="source" />
+			</journal>
+			<journal id="http://www.wikidata.org/entity/fake37" status="source" creator="cezary_rosinski" creation-date="2023-02-09" publishing-date="2023-02-09">
+				<titles without-title="false">
+					<title type="base" lang="pl" principal="true" transliteration="false">Głos Nauczyciela</title>
+				</titles>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<issn />
+				<status id="source" />
+			</journal>
+			<journal id="http://www.wikidata.org/entity/fake38" status="source" creator="cezary_rosinski" creation-date="2023-02-09" publishing-date="2023-02-09">
+				<titles without-title="false">
+					<title type="base" lang="pl" principal="true" transliteration="false">Głos Polski [Toronto]</title>
+				</titles>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<issn />
+				<status id="source" />
+			</journal>
+			<journal id="http://www.wikidata.org/entity/fake39" status="source" creator="cezary_rosinski" creation-date="2023-02-09" publishing-date="2023-02-09">
+				<titles without-title="false">
+					<title type="base" lang="pl" principal="true" transliteration="false">Kamena</title>
+				</titles>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<issn />
+				<status id="source" />
+			</journal>
+			<journal id="http://www.wikidata.org/entity/fake40" status="source" creator="cezary_rosinski" creation-date="2023-02-09" publishing-date="2023-02-09">
+				<titles without-title="false">
+					<title type="base" lang="pl" principal="true" transliteration="false">Kwartalnik Wrzesiński</title>
+				</titles>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<issn>1505-6155</issn>
+				<status id="source" />
+			</journal>
+			<journal id="http://www.wikidata.org/entity/fake41" status="source" creator="cezary_rosinski" creation-date="2023-02-09" publishing-date="2023-02-09">
+				<titles without-title="false">
+					<title type="base" lang="pl" principal="true" transliteration="false">Literatura Ludowa</title>
+				</titles>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<issn>0024-4708</issn>
+				<status id="source" />
+			</journal>
+			<journal id="http://www.wikidata.org/entity/fake42" status="source" creator="cezary_rosinski" creation-date="2023-02-09" publishing-date="2023-02-09">
+				<titles without-title="false">
+					<title type="base" lang="pl" principal="true" transliteration="false">Ludzie</title>
+				</titles>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<issn />
+				<status id="source" />
+			</journal>
+			<journal id="http://www.wikidata.org/entity/fake43" status="source" creator="cezary_rosinski" creation-date="2023-02-09" publishing-date="2023-02-09">
+				<titles without-title="false">
+					<title type="base" lang="pl" principal="true" transliteration="false">Marzenia, projekty i testamenty Stefana Żeromskiego</title>
+				</titles>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<issn />
+				<status id="source" />
+			</journal>
+			<journal id="http://www.wikidata.org/entity/fake44" status="source" creator="cezary_rosinski" creation-date="2023-02-09" publishing-date="2023-02-09">
+				<titles without-title="false">
+					<title type="base" lang="pl" principal="true" transliteration="false">Myśl Polska o Kulturze</title>
+				</titles>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<issn />
+				<status id="source" />
+			</journal>
+			<journal id="http://www.wikidata.org/entity/fake45" status="source" creator="cezary_rosinski" creation-date="2023-02-09" publishing-date="2023-02-09">
+				<titles without-title="false">
+					<title type="base" lang="pl" principal="true" transliteration="false">Nauka i Przyszłość</title>
+				</titles>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<issn>0867-2687</issn>
+				<status id="source" />
+			</journal>
+			<journal id="http://www.wikidata.org/entity/fake46" status="source" creator="cezary_rosinski" creation-date="2023-02-09" publishing-date="2023-02-09">
+				<titles without-title="false">
+					<title type="base" lang="pl" principal="true" transliteration="false">Neerlandica Wratislaviensia</title>
+				</titles>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<issn>0860-0716</issn>
+				<status id="source" />
+			</journal>
+			<journal id="http://www.wikidata.org/entity/fake47" status="source" creator="cezary_rosinski" creation-date="2023-02-09" publishing-date="2023-02-09">
+				<titles without-title="false">
+					<title type="base" lang="pl" principal="true" transliteration="false">Niepodległość i Pamięć</title>
+				</titles>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<issn>1427-1443</issn>
+				<status id="source" />
+			</journal>
+			<journal id="http://www.wikidata.org/entity/fake48" status="source" creator="cezary_rosinski" creation-date="2023-02-09" publishing-date="2023-02-09">
+				<titles without-title="false">
+					<title type="base" lang="pl" principal="true" transliteration="false">Ogród</title>
+				</titles>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<issn />
+				<status id="source" />
+			</journal>
+			<journal id="http://www.wikidata.org/entity/fake49" status="source" creator="cezary_rosinski" creation-date="2023-02-09" publishing-date="2023-02-09">
+				<titles without-title="false">
+					<title type="base" lang="pl" principal="true" transliteration="false">Opcje (Katowice. Druk)</title>
+				</titles>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<issn>1230-9982</issn>
+				<status id="source" />
+			</journal>
+			<journal id="http://www.wikidata.org/entity/fake50" status="source" creator="cezary_rosinski" creation-date="2023-02-09" publishing-date="2023-02-09">
+				<titles without-title="false">
+					<title type="base" lang="pl" principal="true" transliteration="false">Orzeł Biały</title>
+				</titles>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<issn />
+				<status id="source" />
+			</journal>
+			<journal id="http://www.wikidata.org/entity/fake51" status="source" creator="cezary_rosinski" creation-date="2023-02-09" publishing-date="2023-02-09">
+				<titles without-title="false">
+					<title type="base" lang="pl" principal="true" transliteration="false">Pamiętnik Literacki</title>
+				</titles>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<issn>0031-0514</issn>
+				<status id="source" />
+			</journal>
+			<journal id="http://www.wikidata.org/entity/fake52" status="source" creator="cezary_rosinski" creation-date="2023-02-09" publishing-date="2023-02-09">
+				<titles without-title="false">
+					<title type="base" lang="pl" principal="true" transliteration="false">Parnasik</title>
+				</titles>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<issn />
+				<status id="source" />
+			</journal>
+			<journal id="http://www.wikidata.org/entity/fake53" status="source" creator="cezary_rosinski" creation-date="2023-02-09" publishing-date="2023-02-09">
+				<titles without-title="false">
+					<title type="base" lang="pl" principal="true" transliteration="false">Plus Minus</title>
+				</titles>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<issn />
+				<status id="source" />
+			</journal>
+			<journal id="http://www.wikidata.org/entity/fake54" status="source" creator="cezary_rosinski" creation-date="2023-02-09" publishing-date="2023-02-09">
+				<titles without-title="false">
+					<title type="base" lang="pl" principal="true" transliteration="false">Polish Culture</title>
+				</titles>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<issn>1428-8842</issn>
+				<status id="source" />
+			</journal>
+			<journal id="http://www.wikidata.org/entity/fake55" status="source" creator="cezary_rosinski" creation-date="2023-02-09" publishing-date="2023-02-09">
+				<titles without-title="false">
+					<title type="base" lang="pl" principal="true" transliteration="false">Poradnik Bibliotekarza</title>
+				</titles>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<issn>0032-4752</issn>
+				<status id="source" />
+			</journal>
+			<journal id="http://www.wikidata.org/entity/fake56" status="source" creator="cezary_rosinski" creation-date="2023-02-09" publishing-date="2023-02-09">
+				<titles without-title="false">
+					<title type="base" lang="pl" principal="true" transliteration="false">Powściągliwość i Praca</title>
+				</titles>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<issn>0239-5207</issn>
+				<status id="source" />
+			</journal>
+			<journal id="http://www.wikidata.org/entity/fake57" status="source" creator="cezary_rosinski" creation-date="2023-02-09" publishing-date="2023-02-09">
+				<titles without-title="false">
+					<title type="base" lang="pl" principal="true" transliteration="false">Promocje Kujawsko-Pomorskie</title>
+				</titles>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<issn>1640-9612</issn>
+				<status id="source" />
+			</journal>
+			<journal id="http://www.wikidata.org/entity/fake58" status="source" creator="cezary_rosinski" creation-date="2023-02-09" publishing-date="2023-02-09">
+				<titles without-title="false">
+					<title type="base" lang="pl" principal="true" transliteration="false">Przegląd Humanistyczny</title>
+				</titles>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<issn>0033-2194</issn>
+				<status id="source" />
+			</journal>
+			<journal id="http://www.wikidata.org/entity/fake59" status="source" creator="cezary_rosinski" creation-date="2023-02-09" publishing-date="2023-02-09">
+				<titles without-title="false">
+					<title type="base" lang="pl" principal="true" transliteration="false">Przegląd Polski = Polish Review</title>
+				</titles>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<issn />
+				<status id="source" />
+			</journal>
+			<journal id="http://www.wikidata.org/entity/fake60" status="source" creator="cezary_rosinski" creation-date="2023-02-09" publishing-date="2023-02-09">
+				<titles without-title="false">
+					<title type="base" lang="pl" principal="true" transliteration="false">Przegląd Tygodniowy</title>
+				</titles>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<issn />
+				<status id="source" />
+			</journal>
+			<journal id="http://www.wikidata.org/entity/fake61" status="source" creator="cezary_rosinski" creation-date="2023-02-09" publishing-date="2023-02-09">
+				<titles without-title="false">
+					<title type="base" lang="pl" principal="true" transliteration="false">Przekrój</title>
+				</titles>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<issn>0033-2488</issn>
+				<status id="source" />
+			</journal>
+			<journal id="http://www.wikidata.org/entity/fake62" status="source" creator="cezary_rosinski" creation-date="2023-02-09" publishing-date="2023-02-09">
+				<titles without-title="false">
+					<title type="base" lang="pl" principal="true" transliteration="false">Regiony</title>
+				</titles>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<issn />
+				<status id="source" />
+			</journal>
+			<journal id="http://www.wikidata.org/entity/fake63" status="source" creator="cezary_rosinski" creation-date="2023-02-09" publishing-date="2023-02-09">
+				<titles without-title="false">
+					<title type="base" lang="pl" principal="true" transliteration="false">Roczniki Dziejów Ruchu Ludowego</title>
+				</titles>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<issn>0557-2207</issn>
+				<status id="source" />
+			</journal>
+			<journal id="http://www.wikidata.org/entity/fake64" status="source" creator="cezary_rosinski" creation-date="2023-02-09" publishing-date="2023-02-09">
+				<titles without-title="false">
+					<title type="base" lang="pl" principal="true" transliteration="false">Rzeczpospolita (Warszawa)</title>
+				</titles>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<issn>0208-9130</issn>
+				<status id="source" />
+			</journal>
+			<journal id="http://www.wikidata.org/entity/fake65" status="source" creator="cezary_rosinski" creation-date="2023-02-09" publishing-date="2023-02-09">
+				<titles without-title="false">
+					<title type="base" lang="pl" principal="true" transliteration="false">Rzeczpospolita</title>
+				</titles>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<issn />
+				<status id="source" />
+			</journal>
+			<journal id="http://www.wikidata.org/entity/fake66" status="source" creator="cezary_rosinski" creation-date="2023-02-09" publishing-date="2023-02-09">
+				<titles without-title="false">
+					<title type="base" lang="pl" principal="true" transliteration="false">Slavia Occidentalis</title>
+				</titles>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<issn>0081-0002</issn>
+				<status id="source" />
+			</journal>
+			<journal id="http://www.wikidata.org/entity/fake67" status="source" creator="cezary_rosinski" creation-date="2023-02-09" publishing-date="2023-02-09">
+				<titles without-title="false">
+					<title type="base" lang="pl" principal="true" transliteration="false">Studia Norwidiana</title>
+				</titles>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<issn>0860-0562</issn>
+				<status id="source" />
+			</journal>
+			<journal id="http://www.wikidata.org/entity/fake68" status="source" creator="cezary_rosinski" creation-date="2023-02-09" publishing-date="2023-02-09">
+				<titles without-title="false">
+					<title type="base" lang="pl" principal="true" transliteration="false">Szpilki</title>
+				</titles>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<issn />
+				<status id="source" />
+			</journal>
+			<journal id="http://www.wikidata.org/entity/fake69" status="source" creator="cezary_rosinski" creation-date="2023-02-09" publishing-date="2023-02-09">
+				<titles without-title="false">
+					<title type="base" lang="pl" principal="true" transliteration="false">Słowo Powszechne</title>
+				</titles>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<issn>0137-9283</issn>
+				<status id="source" />
+			</journal>
+			<journal id="http://www.wikidata.org/entity/fake70" status="source" creator="cezary_rosinski" creation-date="2023-02-09" publishing-date="2023-02-09">
+				<titles without-title="false">
+					<title type="base" lang="pl" principal="true" transliteration="false">Słowo Żydowskie = Dos Jidisze Wort</title>
+				</titles>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<issn />
+				<status id="source" />
+			</journal>
+			<journal id="http://www.wikidata.org/entity/fake71" status="source" creator="cezary_rosinski" creation-date="2023-02-09" publishing-date="2023-02-09">
+				<titles without-title="false">
+					<title type="base" lang="pl" principal="true" transliteration="false">Topos (Sopot)</title>
+				</titles>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<issn>1230-8943</issn>
+				<status id="source" />
+			</journal>
+			<journal id="http://www.wikidata.org/entity/fake72" status="source" creator="cezary_rosinski" creation-date="2023-02-09" publishing-date="2023-02-09">
+				<titles without-title="false">
+					<title type="base" lang="pl" principal="true" transliteration="false">Trybuna</title>
+				</titles>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<issn />
+				<status id="source" />
+			</journal>
+			<journal id="http://www.wikidata.org/entity/fake73" status="source" creator="cezary_rosinski" creation-date="2023-02-09" publishing-date="2023-02-09">
+				<titles without-title="false">
+					<title type="base" lang="pl" principal="true" transliteration="false">Tygodnik Solidarność</title>
+				</titles>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<issn>0208-8045</issn>
+				<status id="source" />
+			</journal>
+			<journal id="http://www.wikidata.org/entity/fake74" status="source" creator="cezary_rosinski" creation-date="2023-02-09" publishing-date="2023-02-09">
+				<titles without-title="false">
+					<title type="base" lang="pl" principal="true" transliteration="false">Wiek XIX</title>
+				</titles>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<issn>2080-0851</issn>
+				<status id="source" />
+			</journal>
+			<journal id="http://www.wikidata.org/entity/fake75" status="source" creator="cezary_rosinski" creation-date="2023-02-09" publishing-date="2023-02-09">
+				<titles without-title="false">
+					<title type="base" lang="pl" principal="true" transliteration="false">Wprost</title>
+				</titles>
+				<headings>
+					<heading id="f56c40ddce1076f01ab157bed1da7c85" />
+				</headings>
+				<issn>0209-1747</issn>
+				<status id="source" />
+			</journal>
+		</journals>
+	</files>
+</pbl>

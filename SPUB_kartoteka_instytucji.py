@@ -106,9 +106,9 @@ give_fake_id(institutions)
 
 institutions_xml = ET.Element('pbl')
 files_node = ET.SubElement(institutions_xml, 'files')
-institution_node = ET.SubElement(files_node, 'institutions')
+institutions_node = ET.SubElement(files_node, 'institutions')
 for institution in institutions:
-    institution_node.append(institution.to_xml())
+    institutions_node.append(institution.to_xml())
 
 tree = ET.ElementTree(institutions_xml)
 

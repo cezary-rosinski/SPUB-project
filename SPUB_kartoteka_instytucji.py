@@ -29,6 +29,7 @@ class Institution:
         for el in [self.id, self.viaf]:
             self.add_institution_link(el)
         self.newest_name = [e for e in self.names if e.newest == 'true'][0].value
+        self.removed = 'false'
     
     class XmlRepresentation:
         
@@ -75,7 +76,7 @@ class Institution:
             self.links.append(self.InstitutionLink(institution_instance=self, link=institution_link))
             
     def to_xml(self):
-        institution_dict = {k:v for k,v in {'id': self.id, 'status': self.status, 'creator': self.creator, 'creation-date': self.date, 'publishing-date': self.publishing_date, 'viaf': self.viaf}.items() if v}
+        institution_dict = {k:v for k,v in {'id': self.id, 'status': self.status, 'creator': self.creator, 'creation-date': self.date, 'publishing-date': self.publishing_date, 'viaf': self.viaf, 'removed': self.removed}.items() if v}
         institution_xml = ET.Element('institution', institution_dict)
         
         if self.links:
@@ -124,6 +125,8 @@ tree.write(f'import_institutions_{datetime.today().date()}.xml', encoding='UTF-8
 # xmlstr = minidom.parseString(ET.tostring(test_xml)).toprettyxml(indent="   ")
 # print(xmlstr)
 
+#kolejne kroki:
+    #type
 
 #%% schemat
 # <institution id="TuJestZewnetrznyId" status="published|draft|prepared" createor="c_rosinski" creation-date="01.01.2021" publishing-date="01.01.2021" origin="IdentyfikatorŹródła">

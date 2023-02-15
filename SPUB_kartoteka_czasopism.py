@@ -5,33 +5,75 @@ from tqdm import tqdm
 import xml.etree.cElementTree as ET
 from datetime import datetime
 from SPUB_functions import give_fake_id
+import regex as re
+from SPUB_kartoteka_numerów_czasopism import JournalNumber
 
 #%% main
 
-with open(r"F:\Cezary\Documents\IBL\Libri\dane z libri do pbl\2023-02-09\magazines.json", encoding='utf-8') as f:
-    data = json.load(f)
+# with open(r"F:\Cezary\Documents\IBL\Libri\dane z libri do pbl\2023-02-15\magazines.json", encoding='utf-8') as f:
+#     data2 = json.load(f)
     
-data = [{k:v for k,v in e.items() if k != 'recCount'} for e in data]
+# data2 = [{k:v for k,v in e.items() if k != 'recCount'} for e in data2]
+# mg_titles = [e.get('name') for e in data2]
 
-with open(r"F:\Cezary\Documents\IBL\Libri\dane z libri do pbl\2023-02-09\biblio.json", encoding='utf-8') as f:
+with open(r"F:\Cezary\Documents\IBL\Libri\dane z libri do pbl\2023-02-15\biblio.json", encoding='utf-8') as f:
     biblio_data = json.load(f)
 
-# test = [e for e in biblio_data if e.get('source_publication') and 'Annales' in e.get('source_publication')]
-    
-journals_data = [{e.get('article_resource_str_mv')[0] if 'article_resource_str_mv' in e else e.get('source_publication'):e.get('datesort_str_mv')[0]} for e in biblio_data if e.get('format_major')[0] == 'Journal article']
+biblio_data = [{k:v for k,v in e.items() if k in ['article_resource_str_mv', 'source_publication', 'article_issn_str', 'datesort_str_mv', 'article_resource_related_str_mv']} for e in biblio_data if e.get('format_major')[0] == 'Journal article']
+
+def get_number(x: str):
+    patterns = ('(?>nr )(\d+)', '(?>\d+, )(.+?)(?=,)', '(?>^)R\. \d+', '(?>\[Nr\] )(\d+)', '(?>Nr )(\d+)')
+    for pattern in patterns:
+        try:
+            return re.findall(pattern, x)[0]
+        except IndexError:
+            continue
+    else:
+        return "no match"
+            
+data = {}
+for el in biblio_data:
+    name = el.get('article_resource_str_mv')[0] if 'article_resource_str_mv' in el else el.get('source_publication')
+    if name not in data:
+        test_dict = {}
+        test_dict['name'] = name
+        test_dict['issn'] = el.get('article_issn_str')
+        year = el.get('datesort_str_mv')[0]
+        number = get_number(el.get('article_resource_related_str_mv')[0])
+        test_dict['years'] = {year: set([number])}
+        data[name] = test_dict
+    else:
+        year = el.get('datesort_str_mv')[0]
+        number = get_number(el.get('article_resource_related_str_mv')[0])
+        if year in data[name]['years']:       
+            data[name]['years'][year].add(number)
+        else:
+            data[name]['years'].update({year: set([number])})
+
+data = list(data.values())
+# titles = [e.get('name') for e in data] 
+
+# journals_data = [{e.get('article_resource_str_mv')[0] if 'article_resource_str_mv' in e else e.get('source_publication'):e.get('datesort_str_mv')[0]} for e in biblio_data if e.get('format_major')[0] == 'Journal article']
 
 # test = [e for e in biblio_data if e.get('article_resource_str_mv') and e.get('format_major')[0] == 'Journal article']
 
-biblio_journals = {}
-for e in journals_data:
-    k,v = tuple(e.items())[0]
-    if k not in biblio_journals:
-        biblio_journals[k] = set([v])
-    else:
-        biblio_journals[k].add(v)
+# biblio_journals = {}
+# for e in journals_data:
+#     k,v = tuple(e.items())[0]
+#     if k not in biblio_journals:
+#         biblio_journals[k] = set([v])
+#     else:
+#         biblio_journals[k].add(v)
 
-[e.update({'years': biblio_journals.get(e.get('name'))}) for e in data]
-data = [{'title' if k == 'name' else k:v for k,v in e.items()} for e in data]
+# [e.update({'years': biblio_journals.get(e.get('name'))}) for e in data]
+# data = [{'title' if k == 'name' else k:v for k,v in e.items()} for e in data]
+
+
+
+
+
+
+#%%
 
 class Journal:
     

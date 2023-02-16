@@ -6,7 +6,7 @@ from SPUB_kartoteka_numerów_czasopism import JournalNumber
 #%% main
 class JournalYear:
     
-    def __init__(self, year, journal_id='', character='literary', numbers_set=None):
+    def __init__(self, year, journal_id='', numbers_set=None, character='literary'):
         self.year = year
         self.removed = 'false'
         self.origin = ''
@@ -31,10 +31,15 @@ class JournalYear:
     
         def __repr__(self):
             return "JournalYearCharacter('{}')".format(self.character)
-                
+
+    def __repr__(self):
+        return "JournalYear('{}', '{}', '{}')".format(self.year, self.journal_id, self.numbers)
+            
     def to_xml(self):
-        journal_year_dict = {'removed': self.removed, 'id': self.id, 'origin': self.origin}
+        journal_year_dict = {k:v for k,v in {'removed': self.removed, 'id': self.id, 'origin': self.origin}.items() if v}
         journal_year_xml = ET.Element('journal-year', journal_year_dict)
+        
+        journal_year_xml.append(ET.Element('journal', {'id': self.journal_id}))
         
         characters_xml = ET.Element('characters')
         for character in self.characters:

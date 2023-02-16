@@ -11,7 +11,7 @@ class JournalNumber:
         self.removed = 'false'
         self.origin = ''
         self.journal_year_id = journal_year_id
-        self.id = f'{self.journal_year_id}_{self.number}'
+        self.id = f'{self.journal_year_id}_{self.number}'.replace(' ', '-')
         self.headings = ['f56c40ddce1076f01ab157bed1da7c85']
         self.links = []
         
@@ -42,7 +42,7 @@ class JournalNumber:
             self.links.append(self.JournalLink(journal_number_instance=self, link=journal_number_link))
                 
     def to_xml(self):
-        journal_number_dict = {'removed': self.removed, 'id': self.id, 'origin': self.origin}
+        journal_number_dict = {k:v for k,v in {'removed': self.removed, 'id': self.id, 'origin': self.origin}.items() if v}
         journal_number_xml = ET.Element('journal-number', journal_number_dict)
         
         if self.links:

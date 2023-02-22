@@ -5,8 +5,12 @@
 
 #%% import
 
-from SPUB_preprocessing import preprocess_places, preprocess_events
-from SPUB_kartoteki_klasy import Place, Event
+from SPUB_preprocessing import preprocess_places, preprocess_people, preprocess_events, preprocess_publishing_series
+# from SPUB_kartoteki_klasy import Place, Person, Event, PublishingSeries
+from SPUB_kartoteka_miejsc import Place
+from SPUB_kartoteka_osób import Person
+from SPUB_kartoteka_wydarzeń import Event
+from SPUB_kartoteka_serii_wydawniczych import PublishingSeries
 from SPUB_functions import give_fake_id
 import xml.etree.cElementTree as ET
 from datetime import datetime
@@ -14,19 +18,31 @@ from datetime import datetime
 
 
 #%% import data
-places_data = preprocess_places(r"F:\Cezary\Documents\IBL\Libri\dane z libri do pbl\2023-02-16\pub_places.json")
+places_data = preprocess_places(r"F:\Cezary\Documents\IBL\Libri\dane z libri do pbl\2023-02-16\pub_places.json", r"F:\Cezary\Documents\IBL\Libri\dane z libri do pbl\2023-02-16\event_places.json")
 
-events_data = preprocess_events(r"F:\Cezary\Documents\IBL\Libri\dane z libri do pbl\2023-02-15\events.json")
+person_data = preprocess_people(r"F:\Cezary\Documents\IBL\Libri\dane z libri do pbl\2023-02-16\persons.json")
 
+events_data = preprocess_events(r"F:\Cezary\Documents\IBL\Libri\dane z libri do pbl\2023-02-16\events.json")
 
+series_data = preprocess_publishing_series(r"F:\Cezary\Documents\IBL\Libri\dane z libri do pbl\2023-02-16\biblio.json")
 #%% create class
 
 places = [Place.from_dict(e) for e in places_data]
 give_fake_id(places)
 
+persons = [Person.from_dict(e) for e in person_data]
+give_fake_id(persons)
+for person in persons:
+    person.connect_with_places(places)
+
 events = [Event.from_dict(e) for e in events_data]
 give_fake_id(events)
-[e.connect_with_places(places) for e in events]
+for event in events:
+    event.connect_with_places(places) 
+
+publishing_series_list = [PublishingSeries.from_dict(e) for e in series_data]
+give_fake_id(publishing_series_list)
+[e.__dict__ for e in publishing_series_list]
 #%% enrich classes
 
 
@@ -48,6 +64,16 @@ tree = ET.ElementTree(places_xml)
 ET.indent(tree, space="\t", level=0)
 tree.write(f'import_places_{datetime.today().date()}.xml', encoding='UTF-8')
 
+persons_xml = ET.Element('pbl')
+files_node = ET.SubElement(persons_xml, 'files')
+people_node = ET.SubElement(files_node, 'people')
+for person in persons:
+    people_node.append(person.to_xml())
+
+tree = ET.ElementTree(persons_xml)
+
+ET.indent(tree, space="\t", level=0)
+tree.write(f'import_people_{datetime.today().date()}.xml', encoding='UTF-8')
 
 events_xml = ET.Element('pbl')
 files_node = ET.SubElement(events_xml, 'files')
@@ -59,3 +85,33 @@ tree = ET.ElementTree(events_xml)
 
 ET.indent(tree, space="\t", level=0)
 tree.write(f'import_events_{datetime.today().date()}.xml', encoding='UTF-8')
+
+publishing_series_list_xml = ET.Element('pbl')
+files_node = ET.SubElement(publishing_series_list_xml, 'files')
+publishing_series_list_node = ET.SubElement(files_node, 'publishing-series-list')
+for publishing_series in publishing_series_list:
+    publishing_series_list_node.append(publishing_series.to_xml())
+    
+tree = ET.ElementTree(publishing_series_list_xml)
+
+ET.indent(tree, space="\t", level=0)
+tree.write(f'import_publishing_series_list_{datetime.today().date()}.xml', encoding='UTF-8')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -9,26 +9,9 @@ from SPUB_functions import give_fake_id
 
 #%% main
 
-#plik od MG, który ma miejsca jako tematy – MG ma wygenerować lepszej jakości plik
-with open(r"F:\Cezary\Documents\IBL\Libri\dane z libri do pbl\2023-02-08\persons.json", encoding='utf-8') as f:
-    data = json.load(f)
-
-[e.update({'dateB': e.get('fromWiki', {}).get('dateB')}) for e in data]
-[e.update({'dateD': e.get('fromWiki', {}).get('dateD')}) for e in data]
-data = [{k:e.get('dateB') if k == 'yearBorn' and isinstance(e.get('dateB'), str) else v for k,v in e.items()} for e in data]
-data = [{k:e.get('dateD') if k == 'yearDeath' and isinstance(e.get('dateD'), str) else v for k,v in e.items()} for e in data]
-
-#przejmujemy daty z wiki i nadpisujemy yearBorn i yearDeath, jak wiki puste, to zostaje to, co było
-
-#co jeśli jedna osoba (ten sam wiki id) ma kilka nazw? czy to w ogóle się zdarza?
-
-# len([e.get('wiki') for e in data if e.get('wiki')])
-# len(set([e.get('wiki') for e in data if e.get('wiki')]))
-data = [{k:v for k,v in e.items() if k not in ['dateB', 'dateD', 'fromWiki', 'recCount']} for e in data]
-
 class Person:
     
-    def __init__(self, id_, viaf, name='', birth_date='', death_date=''):
+    def __init__(self, id_, viaf, name='', birth_date='', death_date='', birth_place='', death_place=''):
         self.id = f"http://www.wikidata.org/entity/Q{id_}"if id_ else None
         self.viaf = f"https://viaf.org/viaf/{viaf}" if viaf else None
         self.creator = 'cezary_rosinski'
@@ -42,8 +25,8 @@ class Person:
         self.links = []
         for el in [self.id, self.viaf]:
             self.add_person_link(el)
-        self.birth_date = self.PersonDate(date_from=birth_date) if birth_date else None
-        self.death_date = self.PersonDate(date_from=death_date) if death_date else None
+        self.birth_date_and_place = self.PersonDateAndPlace(date_from=birth_date, place_id=birth_place) if birth_date else None
+        self.death_date_and_place = self.PersonDateAndPlace(date_from=death_date, place_id=death_place) if death_date else None
     
     class XmlRepresentation:
         
@@ -53,9 +36,10 @@ class Person:
                     name_xml = ET.Element('name', {'transliteration': self.transliteration, 'code': self.code})
                     name_xml.text = self.value
                     return name_xml
-                case 'PersonDate':
+                case 'PersonDateAndPlace':
                     date_xml = ET.Element('date', {'from': self.date_from, 'from-bc': self.date_from_bc, 'date-uncertain': self.date_uncertain})
-                    return date_xml
+                    place_xml = ET.Element('place', {'id': self.place_id, 'period': self.place_period, 'lang': self.place_lang})
+                    return date_xml, place_xml
                 case 'PersonLink':
                     link_xml = ET.Element('link', {'access-date': self.access_date, 'type': self.type})
                     link_xml.text = self.link
@@ -71,7 +55,7 @@ class Person:
         def __repr__(self):
             return "PersonName('{}')".format(self.value)
         
-    class PersonDate(XmlRepresentation):
+    class PersonDateAndPlace(XmlRepresentation):
         
         def __init__(self, date_from='', date_from_bc='', date_to='', date_to_bc='', date_uncertain='', date_in_words='', place_id='', place_period='', place_lang=''):
             self.date_from = date_from
@@ -80,10 +64,13 @@ class Person:
             self.date_to_bc = date_to_bc
             self.date_uncertain = 'false' if self.date_from else date_uncertain
             self.date_in_words = date_in_words
+            self.place_id = f"http://www.wikidata.org/entity/{place_id}" if place_id else None
+            self.place_period = place_period
+            self.place_lang = place_lang
             #place zależy od rozwoju kartoteki miejsc – dodanie miejsc wiki
             
         def __repr__(self):
-            return "PersonDate(date_from='{}', date_from_bc='{}', date_uncertain='{}')".format(self.date_from, self.date_from_bc, self.date_uncertain)
+            return "PersonDate(date_from='{}', place_id='{}')".format(self.date_from, self.place_id)
         
     class PersonLink(XmlRepresentation):
         
@@ -102,11 +89,21 @@ class Person:
         name = person_dict.get('name')
         birth_date = person_dict.get('yearBorn')
         death_date = person_dict.get('yearDeath')
-        return cls(id_, viaf, name, birth_date, death_date)
+        birth_place = person_dict.get('placeB')
+        death_place = person_dict.get('placeD')
+        return cls(id_, viaf, name, birth_date, death_date, birth_place, death_place)
     
     def add_person_link(self, person_link):
         if person_link:
             self.links.append(self.PersonLink(person_instance=self, link=person_link))
+            
+    def connect_with_places(self, list_of_places_class):
+        for place in [self.birth_date_and_place, self.death_date_and_place]:
+            if place:
+                match_place = [e for e in list_of_places_class if place.place_id == e.id]
+                if match_place:
+                    place.place_period = f'{match_place[0].periods[0].date_from}❦{match_place[0].periods[0].date_to}'
+                    place.place_lang = match_place[0].periods[0].lang
             
     def to_xml(self):
         person_dict = {k:v for k,v in {'id': self.id, 'status': self.status, 'creator': self.creator, 'creation-date': self.date, 'publishing-date': self.publishing_date, 'viaf': self.viaf}.items() if v}
@@ -120,13 +117,15 @@ class Person:
         
         if self.sex:
             person_xml.append(ET.Element('sex', {'value': self.sex}))
-        if self.birth_date:
+        if self.birth_date_and_place:
             birth_xml = ET.Element('birth')
-            birth_xml.append(self.birth_date.to_xml())
+            for el in self.birth_date_and_place.to_xml():
+                birth_xml.append(el)
             person_xml.append(birth_xml)
-        if self.death_date:
+        if self.death_date_and_place:
             death_xml = ET.Element('death')
-            death_xml.append(self.death_date.to_xml())
+            for el in self.death_date_and_place.to_xml():
+                death_xml.append(el)
             person_xml.append(death_xml)
         headings_xml = ET.Element('headings')
         for heading in self.headings:
@@ -134,34 +133,60 @@ class Person:
         person_xml.append(headings_xml)
         return person_xml
 
-persons = [Person.from_dict(e) for e in data]
-# [e.__dict__ for e in persons]
-give_fake_id(persons)
-# [e.__dict__ for e in persons]
 
-persons_xml = ET.Element('pbl')
-files_node = ET.SubElement(persons_xml, 'files')
-people_node = ET.SubElement(files_node, 'people')
-for person in persons:
-    people_node.append(person.to_xml())
-
-tree = ET.ElementTree(persons_xml)
-
-ET.indent(tree, space="\t", level=0)
-tree.write(f'import_people_{datetime.today().date()}.xml', encoding='UTF-8')
 
 # #print tests
 # test_xml = persons[0].names[0].to_xml()
 # test_xml = persons[0].birth_date.to_xml()
 # test_xml = persons[0].death_date.to_xml()
 # test_xml = persons[0].links[0].to_xml()
-# test_xml = persons[-1].to_xml()
+# test_xml = persons[1].to_xml()
 
 # from xml.dom import minidom
 # xmlstr = minidom.parseString(ET.tostring(test_xml)).toprettyxml(indent="   ")
 # print(xmlstr)
 
+#%% schemat
 
+# <person id="TuJestZewnetrznyId" viaf="13373997" status="published|draft|prepared" createor="c_rosinski" creation-date="2021-05-25" publishing-date="2021-05-25" origin="IdentyfikatorŹródła">
+# 				<names>
+# 					<!-- codes: main-name, family-name, other-last-name-or-first-name, monastic-name, codename, alias, group-alias, -->
+# 					<name code="main-name" transliteration="no" presentation-name="yes">Jan Kowalski</name>
+# 					<name code="codename">J.K.</name>
+# 					<name code="alias" main-name="yes">Jasiu</name>
+# 					<name code="alias">Janek</name>
+# 					<!-- ... -->
+# 				</names>
+# 				<!-- male, female, unknown, null-->
+# 				<sex value="male"/>
+# 				<!-- list below can be empty - without heading-->
+# 				<headings>
+# 					<heading id="lit-pol"/>
+# 					<heading id="teor-lit"/>
+# 					<!-- ... -->
+# 				</headings>
+# 				<birth>
+# 					<date from="2021-05-25" from-bc="True|False" to="" to-bc="True|False" uncertain="True|False" in-words=""/>
+# 					<place id="" period="1111" lang=""/>
+
+# 				</birth>
+# 				<death>
+# 					<date from="2021-05-25" from-bc="True|False" to="" to-bc="True|False" uncertain="True|False" in-words=""/>
+# 					<place id="" period="1111" lang=""/>
+# 				</death>
+# 				<annotation>To jest jakaś adnotacja</annotation>
+# 				<remark>To jest jakiś komentarz</remark>
+# 				<tags>
+# 					<tag>#gwiadkowicz</tag>
+# 					<tag>#nicMiNiePrzychodzi</tag>
+# 					<!-- ... -->
+# 				</tags>
+# 				<links>
+# 					<link access-date="2021-05-12" type="external-identifier|broader-description-access|online-access">http://pl.wikipedia.org/jan_kowalski</link>
+# 					<link access-date="2021-05-18" type="...">http://viaf.org/viaf/13373997/#Kowalski,_Jan_(1930-2018)</link>
+# 					<!-- ... -->
+# 				</links>
+# 			</person>
 
 
 

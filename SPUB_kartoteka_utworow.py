@@ -1,16 +1,7 @@
 import json
 from datetime import datetime
 from SPUB_functions import give_fake_id
-
-
-path = r"F:\Cezary\Documents\IBL\Libri\dane z libri do pbl\2023-02-16\biblio.json"
-
-with open(path, encoding='utf-8') as f:
-    data = json.load(f)
-
-# test_data = [e for e in data if 'Literature' in e.get('genre_major') and 'author' in e]
-data = [{'name': e.get('author')[0].split('|')[0], 'wiki': e.get('author')[0].split('|')[4], 'title': e.get('title')} for e in data if 'Literature' in e.get('genre_major') and 'author' in e]
-
+import xml.etree.cElementTree as ET
 
 
 class CreativeWork:
@@ -30,14 +21,23 @@ class CreativeWork:
         self.authors = [self.CreativeWorkAuthor(author_id=author_id, author_name=author_name)]
         self.titles = [self.CreativeWorkTitle(value=title)]
         
+        self.headings = ['f56c40ddce1076f01ab157bed1da7c85']
+        
     class XmlRepresentation:
         
-        pass
+        def to_xml(self):
+            match self.__class__.__name__:
+                case 'CreativeWorkAuthor':
+                    return ET.Element('author', {'id': self.author_id, 'juvenile': self.juvenile, 'co-creator': self.co_creator, 'principal': self.principal})
+                case 'CreativeWorkTitle':
+                    title_xml = ET.Element('title', {'code': self.code, 'transliteration': self.transliteration, 'newest': self.newest})
+                    title_xml.text = self.value
+                    return title_xml
     
     class CreativeWorkAuthor(XmlRepresentation):
         
         def __init__(self, author_id, author_name):
-            self.author_id = author_id
+            self.author_id = f"http://www.wikidata.org/entity/Q{author_id}"if author_id else None
             self.juvenile = 'false'
             self.co_creator = 'false'
             self.principal = 'true'
@@ -69,12 +69,42 @@ class CreativeWork:
             if not author.author_id:
                 match_person = [e for e in list_of_persons_class if author.author_name in [el.value for el in e.names]]
                 if match_person:
-                    author.author_id = match_person[0].id          
+                    author.author_id = match_person[0].id    
+                    
+    def to_xml(self):
+        creative_work_dict = {k:v for k,v in {'id': self.id, 'status': self.status, 'creator': self.creator, 'creation-date': self.date, 'publishing-date': self.publishing_date, 'origin': self.origin, 'flags': self.flags}.items() if v}
+        creative_work_xml = ET.Element('creative-work', creative_work_dict)
+        
+        
+        titles_xml = ET.Element('titles')
+        for title in self.titles:
+            titles_xml.append(title.to_xml()) 
+        creative_work_xml.append(titles_xml)
+        
+        if self.authors:
+            authors_xml = ET.Element('authors', {'anonymous': 'false', 'author-company': 'false'})
+            for author in self.authors:
+                authors_xml.append(author.to_xml())
+        else: authors_xml = ET.Element('authors', {'anonymous': 'true', 'author-company': 'false'})
+        creative_work_xml.append(authors_xml)
+        
+        headings_xml = ET.Element('headings')
+        for heading in self.headings:
+            headings_xml.append(ET.Element('heading', {'id': heading}))
+        creative_work_xml.append(headings_xml)
+        
+        return creative_work_xml
 
-# creative_works = [CreativeWork.from_dict(e) for e in data]
-# give_fake_id(creative_works)
-# for creative_work in creative_works:
-#     creative_work.connect_with_persons(persons)
+
+    
+# #print tests
+# test_xml = creative_works[0].to_xml()
+
+# from xml.dom import minidom
+# xmlstr = minidom.parseString(ET.tostring(test_xml)).toprettyxml(indent="   ")
+# print(xmlstr)
+
+
 
 #%% schemat
 # <creative-work id="creative-work-id-01" status="published" creator="a_margraf" creation-date="2022-12-01" publishing-date="2022-12-03" origin="CW-src-id-01" flags="123">

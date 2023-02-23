@@ -5,12 +5,13 @@
 
 #%% import
 
-from SPUB_preprocessing import preprocess_places, preprocess_people, preprocess_events, preprocess_publishing_series
+from SPUB_preprocessing import preprocess_places, preprocess_people, preprocess_events, preprocess_publishing_series, preprocess_creative_works
 # from SPUB_kartoteki_klasy import Place, Person, Event, PublishingSeries
 from SPUB_kartoteka_miejsc import Place
-from SPUB_kartoteka_osób import Person
-from SPUB_kartoteka_wydarzeń import Event
+from SPUB_kartoteka_osob import Person
+from SPUB_kartoteka_wydarzen import Event
 from SPUB_kartoteka_serii_wydawniczych import PublishingSeries
+from SPUB_kartoteka_utworow import CreativeWork
 from SPUB_functions import give_fake_id
 import xml.etree.cElementTree as ET
 from datetime import datetime
@@ -25,6 +26,9 @@ person_data = preprocess_people(r"F:\Cezary\Documents\IBL\Libri\dane z libri do 
 events_data = preprocess_events(r"F:\Cezary\Documents\IBL\Libri\dane z libri do pbl\2023-02-16\events.json")
 
 series_data = preprocess_publishing_series(r"F:\Cezary\Documents\IBL\Libri\dane z libri do pbl\2023-02-16\biblio.json")
+
+creative_works_data = preprocess_creative_works(r"F:\Cezary\Documents\IBL\Libri\dane z libri do pbl\2023-02-16\biblio.json")
+
 #%% create class
 
 places = [Place.from_dict(e) for e in places_data]
@@ -42,7 +46,11 @@ for event in events:
 
 publishing_series_list = [PublishingSeries.from_dict(e) for e in series_data]
 give_fake_id(publishing_series_list)
-[e.__dict__ for e in publishing_series_list]
+
+creative_works = [CreativeWork.from_dict(e) for e in creative_works_data]
+give_fake_id(creative_works)
+for creative_work in creative_works:
+    creative_work.connect_with_persons(persons)
 #%% enrich classes
 
 
@@ -97,7 +105,16 @@ tree = ET.ElementTree(publishing_series_list_xml)
 ET.indent(tree, space="\t", level=0)
 tree.write(f'import_publishing_series_list_{datetime.today().date()}.xml', encoding='UTF-8')
 
+creative_works_xml = ET.Element('pbl')
+files_node = ET.SubElement(creative_works_xml, 'files')
+creative_works_node = ET.SubElement(files_node, 'creative_works')
+for creative_work in creative_works:
+    creative_works_node.append(creative_work.to_xml())
 
+tree = ET.ElementTree(creative_works_xml)
+
+ET.indent(tree, space="\t", level=0)
+tree.write(f'import_creative_works_{datetime.today().date()}.xml', encoding='UTF-8')
 
 
 

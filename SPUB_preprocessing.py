@@ -75,6 +75,13 @@ def preprocess_publishing_series(path):
     data = [{'title': e} for e in data]
     return data
 
+def preprocess_creative_works(path):
+    with open(path, encoding='utf-8') as f:
+        data = json.load(f)
+    return [{'name': e.get('author')[0].split('|')[0], 'wiki': e.get('author')[0].split('|')[4], 'title': e.get('title').strip()} for e in data if 'Literature' in e.get('genre_major') and 'author' in e]
+
+
+
 #%% kartotek – ver 1
 # !!!miejsca!!!
 
@@ -167,7 +174,15 @@ def preprocess_publishing_series(path):
 # series_data = set([[el.strip() for el in e.split(';')][0] for e in series_data])
 # series_data = [{'title': e} for e in series_data]
 
+# !!!utwory!!!
 
+# path = r"F:\Cezary\Documents\IBL\Libri\dane z libri do pbl\2023-02-16\biblio.json"
+
+# with open(path, encoding='utf-8') as f:
+#     data = json.load(f)
+
+# # test_data = [e for e in data if 'Literature' in e.get('genre_major') and 'author' in e]
+# data = [{'name': e.get('author')[0].split('|')[0], 'wiki': e.get('author')[0].split('|')[4], 'title': e.get('title').strip()} for e in data if 'Literature' in e.get('genre_major') and 'author' in e]
 
 
 
